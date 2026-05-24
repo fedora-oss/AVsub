@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import type { SearchResult, TorrentResult } from '~/types'
 import { prepare as ptPrepare, layout as ptLayout } from '@chenglou/pretext'
 
@@ -590,6 +590,56 @@ const playLibraryMovie = (code: string, title: string) => {
 }
 
 const videoPlayerRef = ref<HTMLVideoElement | null>(null)
+const isMetadataLoaded = ref(false)
+
+watch(showVideoPlayer, async (newVal, oldVal, onCleanup) => {
+  if (newVal) {
+    await nextTick()
+    const video = videoPlayerRef.value
+    if (video) {
+      const handleFullscreenChange = () => {
+        if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+          showVideoPlayer.value = false
+        }
+      }
+      const handleWebkitEndFullscreen = () => {
+        showVideoPlayer.value = false
+      }
+      
+      video.addEventListener('fullscreenchange', handleFullscreenChange)
+      video.addEventListener('webkitendfullscreen', handleWebkitEndFullscreen)
+      
+      onCleanup(() => {
+        video.removeEventListener('fullscreenchange', handleFullscreenChange)
+        video.removeEventListener('webkitendfullscreen', handleWebkitEndFullscreen)
+      })
+
+      // Attempt to play and request fullscreen
+      try {
+        await video.play()
+      } catch (playErr) {
+        console.warn('Auto-play failed, user interaction might be required:', playErr)
+      }
+      
+      try {
+        if (video.requestFullscreen) {
+          await video.requestFullscreen()
+        } else if ((video as any).webkitEnterFullscreen) {
+          ;(video as any).webkitEnterFullscreen()
+        }
+        if (screen.orientation && typeof screen.orientation.lock === 'function') {
+          await screen.orientation.lock('landscape').catch((oErr) => {
+            console.log('Orientation lock ignored:', oErr)
+          })
+        }
+      } catch (err) {
+        console.warn('Fullscreen or orientation lock failed:', err)
+      }
+    }
+  } else {
+    isMetadataLoaded.value = false
+  }
+})
 
 const isPiPSupported = computed(() => {
   if (typeof document === 'undefined' || typeof navigator === 'undefined') return false
@@ -1666,73 +1716,78 @@ const runPretextBenchmark = () => {
     </div>
 
     <!-- ── Fullscreen Cinematic Local Video Player Modal ─────────────────────── -->
-    <Transition name="lightbox-fade">
-      <div 
-        v-if="showVideoPlayer" 
-        class="fixed inset-0 z-[10000] flex flex-col bg-black/95 backdrop-blur-2xl"
-      >
-        <!-- Top bar with Notch Safe Area Protection -->
-        <div class="w-full flex justify-between items-center px-4 pb-4 z-10 absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent" style="padding-top: calc(env(safe-area-inset-top) + 16px);">
-          <div class="flex flex-col min-w-0">
-            <h3 class="text-xs font-mono font-extrabold text-violet-400 tracking-widest uppercase">
-              {{ watchingMovieCode }}
-            </h3>
-            <span class="text-[10px] text-slate-400 truncate max-w-[200px] sm:max-w-md">
-              {{ watchingMovieTitle }}
-            </span>
+    <Teleport to="body">
+      <Transition name="lightbox-fade">
+        <div 
+          v-if="showVideoPlayer" 
+          class="fixed inset-0 z-[10000] flex flex-col bg-black/95 backdrop-blur-2xl"
+        >
+          <!-- Top bar with Notch Safe Area Protection -->
+          <div class="w-full flex justify-between items-center px-4 pb-4 z-10 absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent" style="padding-top: calc(env(safe-area-inset-top) + 16px);">
+            <div class="flex flex-col min-w-0">
+              <h3 class="text-xs font-mono font-extrabold text-violet-400 tracking-widest uppercase">
+                {{ watchingMovieCode }}
+              </h3>
+              <span class="text-[10px] text-slate-400 truncate max-w-[200px] sm:max-w-md">
+                {{ watchingMovieTitle }}
+              </span>
+            </div>
+            
+            <div class="flex gap-2">
+              <!-- Programmatic Picture-in-Picture Button -->
+              <button 
+                v-if="isPiPSupported"
+                @click="togglePiP" 
+                :disabled="!isMetadataLoaded"
+                class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-violet-500/20 hover:text-violet-400 hover:border-violet-500/30 transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                :title="isMetadataLoaded ? 'Xem Picture in Picture' : 'Đang tải video...'"
+              >
+                <span v-if="!isMetadataLoaded" class="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin"></span>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v7a1 1 0 01-1 1h-5l-4 4v-4H5a1 1 0 01-1-1V5z" />
+                  <rect x="13" y="11" width="7" height="5" rx="1" fill="currentColor" class="text-violet-400" />
+                </svg>
+              </button>
+    
+              <!-- Close Button -->
+              <button 
+                @click="showVideoPlayer = false" 
+                class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30 transition-all active:scale-90"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
-          
-          <div class="flex gap-2">
-            <!-- Programmatic Picture-in-Picture Button -->
-            <button 
-              v-if="isPiPSupported"
-              @click="togglePiP" 
-              class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-violet-500/20 hover:text-violet-400 hover:border-violet-500/30 transition-all active:scale-90"
-              title="Xem Picture in Picture"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v7a1 1 0 01-1 1h-5l-4 4v-4H5a1 1 0 01-1-1V5z" />
-                <rect x="13" y="11" width="7" height="5" rx="1" fill="currentColor" class="text-violet-400" />
-              </svg>
-            </button>
-
-            <!-- Close Button -->
-            <button 
-              @click="showVideoPlayer = false" 
-              class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30 transition-all active:scale-90"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+    
+          <!-- Video Player with Responsive Pad -->
+          <div class="flex-1 flex items-center justify-center w-full h-full relative p-4 sm:p-8">
+            <div class="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden shadow-[0_0_80px_rgba(139,92,246,0.35)] border border-violet-500/20 bg-slate-950 flex items-center justify-center">
+              <video 
+                v-if="showVideoPlayer"
+                ref="videoPlayerRef"
+                :src="`/api/play/video?code=${encodeURIComponent(watchingMovieCode || '')}`" 
+                controls 
+                autoplay 
+                :playsinline="true"
+                :webkit-playsinline="true"
+                @loadedmetadata="isMetadataLoaded = true"
+                class="w-full h-full object-contain z-10"
+              >
+                <track 
+                  kind="subtitles" 
+                  :src="`/api/play/subtitle?code=${encodeURIComponent(watchingMovieCode || '')}`" 
+                  srclang="ja" 
+                  label="Tiếng Nhật" 
+                  default
+                />
+              </video>
+            </div>
           </div>
         </div>
-
-        <!-- Video Player with Responsive Pad -->
-        <div class="flex-1 flex items-center justify-center w-full h-full relative p-4 sm:p-8">
-          <div class="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden shadow-[0_0_80px_rgba(139,92,246,0.35)] border border-violet-500/20 bg-slate-950 flex items-center justify-center">
-            <video 
-              v-if="showVideoPlayer"
-              ref="videoPlayerRef"
-              :src="`/api/play/video?code=${encodeURIComponent(watchingMovieCode || '')}`" 
-              controls 
-              autoplay 
-              :playsinline="true"
-              :webkit-playsinline="true"
-              class="w-full h-full object-contain z-10"
-            >
-              <track 
-                kind="subtitles" 
-                :src="`/api/play/subtitle?code=${encodeURIComponent(watchingMovieCode || '')}`" 
-                srclang="ja" 
-                label="Tiếng Nhật" 
-                default
-              />
-            </video>
-          </div>
-        </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
 
     <!-- 🎭 GORGEOUS ACTRESS PROFILE DRAWER / MODAL -->
     <Transition name="fade">

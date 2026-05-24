@@ -242,7 +242,8 @@
     "filename": "MFYD-129.mp4",
     "path": "/srv/nas_share/Arr/uncen/MFYD-129/MFYD-129.mp4",
     "code": "MFYD-129",
-    "has_subtitle": false
+    "has_subtitle": false,
+    "no_subtitle": true
   },
   "MIDA-617": {
     "filename": "MIDA-617.mp4",
@@ -255,7 +256,8 @@
     "filename": "RAPD-011.mp4",
     "path": "/srv/nas_share/Arr/uncen/RAPD-011/RAPD-011.mp4",
     "code": "RAPD-011",
-    "has_subtitle": false
+    "has_subtitle": false,
+    "no_subtitle": true
   },
   "HUNTC-544": {
     "filename": "HUNTC-544.mp4",

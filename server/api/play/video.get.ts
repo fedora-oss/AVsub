@@ -38,7 +38,7 @@ export default defineEventHandler((event) => {
   if (!videoFile) {
     throw createError({
       statusCode: 404,
-      statusMessage: `No playable video file found in folder: ${targetFolder}`,
+      statusMessage: `No playable video file found in folder: ${targetPath}`,
     })
   }
 

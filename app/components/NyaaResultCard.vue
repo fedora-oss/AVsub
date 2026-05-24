@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import type { TorrentResult } from '~/types'
 
 const props = defineProps<{
@@ -18,6 +18,7 @@ const showDropdown = ref(false)
 
 const isWatching = ref(false)
 const videoPlayerRef = ref<HTMLVideoElement | null>(null)
+const isMetadataLoaded = ref(false)
 
 const isPiPSupported = computed(() => {
   if (typeof document === 'undefined' || typeof navigator === 'undefined') return false
@@ -69,6 +70,7 @@ const watchMovie = () => {
 
 const stopWatching = async () => {
   isWatching.value = false
+  isMetadataLoaded.value = false
   if (props.result.magnet) {
     try {
       await $fetch('/api/stream-stop', {
@@ -80,6 +82,55 @@ const stopWatching = async () => {
     }
   }
 }
+
+watch(isWatching, async (newVal, oldVal, onCleanup) => {
+  if (newVal) {
+    await nextTick()
+    const video = videoPlayerRef.value
+    if (video) {
+      const handleFullscreenChange = () => {
+        if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+          stopWatching()
+        }
+      }
+      const handleWebkitEndFullscreen = () => {
+        stopWatching()
+      }
+      
+      video.addEventListener('fullscreenchange', handleFullscreenChange)
+      video.addEventListener('webkitendfullscreen', handleWebkitEndFullscreen)
+      
+      onCleanup(() => {
+        video.removeEventListener('fullscreenchange', handleFullscreenChange)
+        video.removeEventListener('webkitendfullscreen', handleWebkitEndFullscreen)
+      })
+
+      // Attempt to play and request fullscreen
+      try {
+        await video.play()
+      } catch (playErr) {
+        console.warn('Auto-play failed, user interaction might be required:', playErr)
+      }
+      
+      try {
+        if (video.requestFullscreen) {
+          await video.requestFullscreen()
+        } else if ((video as any).webkitEnterFullscreen) {
+          ;(video as any).webkitEnterFullscreen()
+        }
+        if (screen.orientation && typeof screen.orientation.lock === 'function') {
+          await screen.orientation.lock('landscape').catch((oErr) => {
+            console.log('Orientation lock ignored:', oErr)
+          })
+        }
+      } catch (err) {
+        console.warn('Fullscreen or orientation lock failed:', err)
+      }
+    }
+  } else {
+    isMetadataLoaded.value = false
+  }
+})
 
 // JAV Rich Metadata State
 const metadata = ref<any>(null)
@@ -341,7 +392,7 @@ const closeLightbox = () => {
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
             </svg>
-            <span>XEM PHIM NGAY (LOCAL)</span>
+            <span>Play</span>
           </button>
         </template>
 
@@ -351,7 +402,10 @@ const closeLightbox = () => {
             @click="watchMovie" 
             class="relative flex-1 h-[40px] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 overflow-hidden transition-all duration-300 select-none active:scale-95 border bg-violet-600/20 text-violet-300 border-violet-500/35 hover:bg-violet-600/35"
           >
-            <span>Play (No Sub)</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+            </svg>
+            <span>Play</span>
           </button>
           <!-- Tải Sub: Ở NyaaResultCard không có sẵn detailLink trực tiếp từ avsubtitles.com nên khi click sẽ gọi luồng tải qBit (luồng này tự động tải sub!) -->
           <button 
@@ -487,119 +541,126 @@ const closeLightbox = () => {
     </div>
 
     <!-- ── Fullscreen Lightbox Modal ─────────────────────────────────────── -->
-    <Transition name="lightbox-fade">
-      <div 
-        v-if="activeScreenshot" 
-        class="fixed inset-0 z-[10000] flex flex-col justify-between bg-black/90 backdrop-blur-2xl px-4 py-6"
-        @click="closeLightbox"
-      >
-        <!-- Top bar layout -->
-        <div class="w-full max-w-5xl mx-auto flex justify-between items-center z-10">
-          <div class="flex flex-col min-w-0">
-            <h3 class="text-xs font-mono font-extrabold text-violet-400 tracking-widest uppercase">
-              {{ metadata?.code || 'NYAA' }}
-            </h3>
-            <span class="text-[10px] text-slate-400 truncate max-w-[280px] sm:max-w-md">
-              {{ metadata?.title || result.title }}
-            </span>
-          </div>
-          
-          <!-- Close button -->
-          <button 
-            @click="closeLightbox" 
-            class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all active:scale-90"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <!-- Center Image content -->
-            <div class="flex-1 flex items-center justify-center max-w-5xl mx-auto w-full my-4 relative">
-          <img 
-            :src="activeScreenshot" 
-            class="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-3xl border border-white/5 animate-lightbox-zoom antialiased select-none"
-            @click.stop
-            style="-webkit-user-drag: none;"
-          />
-        </div>
-
-        <!-- Lightbox footer prompt -->
-        <div class="text-center text-[10px] text-slate-500 font-medium tracking-wide z-10">
-          Tap anywhere on screen to close preview
-        </div>
-      </div>
-    </Transition>
-
-    <!-- ── Fullscreen Video Player Modal ─────────────────────────────────────── -->
-    <Transition name="lightbox-fade">
-      <div 
-        v-if="isWatching" 
-        class="fixed inset-0 z-[10000] flex flex-col bg-black/95 backdrop-blur-2xl"
-      >
-        <!-- Top bar with Notch Safe Area Protection -->
-        <div class="w-full flex justify-between items-center pt-[calc(1rem+env(safe-area-inset-top,0px))] px-4 pb-4 z-10 absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent">
-          <div class="flex flex-col min-w-0">
-            <h3 class="text-xs font-mono font-extrabold text-violet-400 tracking-widest uppercase">
-              {{ metadata?.code || 'STREAMING' }}
-            </h3>
-            <span class="text-[10px] text-slate-400 truncate max-w-[200px] sm:max-w-md">
-              {{ metadata?.title || result.title }}
-            </span>
-          </div>
-          
-          <div class="flex gap-2">
-            <!-- Programmatic Picture-in-Picture Button -->
+    <Teleport to="body">
+      <Transition name="lightbox-fade">
+        <div 
+          v-if="activeScreenshot" 
+          class="fixed inset-0 z-[10000] flex flex-col justify-between bg-black/90 backdrop-blur-2xl px-4 py-6"
+          @click="closeLightbox"
+        >
+          <!-- Top bar layout -->
+          <div class="w-full max-w-5xl mx-auto flex justify-between items-center z-10">
+            <div class="flex flex-col min-w-0">
+              <h3 class="text-xs font-mono font-extrabold text-violet-400 tracking-widest uppercase">
+                {{ metadata?.code || 'NYAA' }}
+              </h3>
+              <span class="text-[10px] text-slate-400 truncate max-w-[280px] sm:max-w-md">
+                {{ metadata?.title || result.title }}
+              </span>
+            </div>
+            
+            <!-- Close button -->
             <button 
-              v-if="isPiPSupported"
-              @click="togglePiP" 
-              class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-violet-500/20 hover:text-violet-400 hover:border-violet-500/30 transition-all active:scale-90"
-              title="Xem Picture in Picture"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v7a1 1 0 01-1 1h-5l-4 4v-4H5a1 1 0 01-1-1V5z" />
-                <rect x="13" y="11" width="7" height="5" rx="1" fill="currentColor" class="text-violet-400" />
-              </svg>
-            </button>
-
-            <!-- Close Button -->
-            <button 
-              @click="stopWatching" 
-              class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30 transition-all active:scale-90"
+              @click="closeLightbox" 
+              class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all active:scale-90"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
-        </div>
-
-        <!-- Video Player with Responsive Pad -->
-        <div class="flex-1 flex items-center justify-center w-full h-full relative p-4 sm:p-8">
-          <div class="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden shadow-[0_0_80px_rgba(139,92,246,0.35)] border border-violet-500/20 bg-slate-950 flex items-center justify-center">
-            <video 
-              v-if="isWatching"
-              ref="videoPlayerRef"
-              :src="`/api/play/video?code=${encodeURIComponent(props.result.code || metadata?.code || '')}`" 
-              controls 
-              autoplay 
-              :playsinline="true"
-              :webkit-playsinline="true"
-              class="w-full h-full object-contain z-10"
-            >
-              <track 
-                kind="subtitles" 
-                :src="`/api/play/subtitle?code=${encodeURIComponent(props.result.code || metadata?.code || '')}`" 
-                srclang="ja" 
-                label="Tiếng Nhật" 
-                default
-              />
-            </video>
+  
+          <!-- Center Image content -->
+          <div class="flex-1 flex items-center justify-center max-w-5xl mx-auto w-full my-4 relative">
+            <img 
+              :src="activeScreenshot" 
+              class="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-3xl border border-white/5 animate-lightbox-zoom antialiased select-none"
+              @click.stop
+              style="-webkit-user-drag: none;"
+            />
+          </div>
+  
+          <!-- Lightbox footer prompt -->
+          <div class="text-center text-[10px] text-slate-500 font-medium tracking-wide z-10">
+            Tap anywhere on screen to close preview
           </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
+
+    <!-- ── Fullscreen Video Player Modal ─────────────────────────────────────── -->
+    <Teleport to="body">
+      <Transition name="lightbox-fade">
+        <div 
+          v-if="isWatching" 
+          class="fixed inset-0 z-[10000] flex flex-col bg-black/95 backdrop-blur-2xl"
+        >
+          <!-- Top bar with Notch Safe Area Protection -->
+          <div class="w-full flex justify-between items-center pt-[calc(1rem+env(safe-area-inset-top,0px))] px-4 pb-4 z-10 absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent">
+            <div class="flex flex-col min-w-0">
+              <h3 class="text-xs font-mono font-extrabold text-violet-400 tracking-widest uppercase">
+                {{ metadata?.code || 'STREAMING' }}
+              </h3>
+              <span class="text-[10px] text-slate-400 truncate max-w-[200px] sm:max-w-md">
+                {{ metadata?.title || result.title }}
+              </span>
+            </div>
+            
+            <div class="flex gap-2">
+              <!-- Programmatic Picture-in-Picture Button -->
+              <button 
+                v-if="isPiPSupported"
+                @click="togglePiP" 
+                :disabled="!isMetadataLoaded"
+                class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-violet-500/20 hover:text-violet-400 hover:border-violet-500/30 transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                :title="isMetadataLoaded ? 'Xem Picture in Picture' : 'Đang tải video...'"
+              >
+                <span v-if="!isMetadataLoaded" class="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin"></span>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v7a1 1 0 01-1 1h-5l-4 4v-4H5a1 1 0 01-1-1V5z" />
+                  <rect x="13" y="11" width="7" height="5" rx="1" fill="currentColor" class="text-violet-400" />
+                </svg>
+              </button>
+    
+              <!-- Close Button -->
+              <button 
+                @click="stopWatching" 
+                class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30 transition-all active:scale-90"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+    
+          <!-- Video Player with Responsive Pad -->
+          <div class="flex-1 flex items-center justify-center w-full h-full relative p-4 sm:p-8">
+            <div class="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden shadow-[0_0_80px_rgba(139,92,246,0.35)] border border-violet-500/20 bg-slate-950 flex items-center justify-center">
+              <video 
+                v-if="isWatching"
+                ref="videoPlayerRef"
+                :src="`/api/play/video?code=${encodeURIComponent(props.result.code || metadata?.code || '')}`" 
+                controls 
+                autoplay 
+                :playsinline="true"
+                :webkit-playsinline="true"
+                @loadedmetadata="isMetadataLoaded = true"
+                class="w-full h-full object-contain z-10"
+              >
+                <track 
+                  kind="subtitles" 
+                  :src="`/api/play/subtitle?code=${encodeURIComponent(props.result.code || metadata?.code || '')}`" 
+                  srclang="ja" 
+                  label="Tiếng Nhật" 
+                  default
+                />
+              </video>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
