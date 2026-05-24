@@ -1,0 +1,267 @@
+{
+  "SDDE-617": {
+    "filename": "SDDE-617_UNCENSORED_LEAKED.mp4",
+    "path": "/srv/nas_share/Arr/uncen/SDDE-617_UNCENSORED_LEAKED.mp4",
+    "code": "SDDE-617",
+    "has_subtitle": true,
+    "no_subtitle": false
+  },
+  "MISM-437": {
+    "filename": "MISM-437.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MISM-437/MISM-437.mp4",
+    "code": "MISM-437",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "MISM-437"
+  },
+  "MIDA-590": {
+    "filename": "MIDA-590.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MIDA-590/MIDA-590.mp4",
+    "code": "MIDA-590",
+    "has_subtitle": false,
+    "no_subtitle": true
+  },
+  "OFJE-697": {
+    "filename": "OFJE-697A.mp4",
+    "path": "/srv/nas_share/Arr/uncen/OFJE-697/OFJE-697A.mp4",
+    "code": "OFJE-697",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "OFJE-697"
+  },
+  "SONE-598": {
+    "filename": "SONE-598.mp4",
+    "path": "/srv/nas_share/Arr/uncen/SONE-598/SONE-598.mp4",
+    "code": "SONE-598",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "SONE-598"
+  },
+  "EBWH-267": {
+    "filename": "EBWH-267ch.mp4",
+    "path": "/srv/nas_share/Arr/uncen/EBWH-267ch/EBWH-267ch.mp4",
+    "code": "EBWH-267",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "EBWH-267"
+  },
+  "OFJE-585": {
+    "filename": "OFJE-585.mp4",
+    "path": "/srv/nas_share/Arr/uncen/OFJE-585/OFJE-585.mp4",
+    "code": "OFJE-585",
+    "has_subtitle": false,
+    "no_subtitle": true
+  },
+  "MIRD-277": {
+    "filename": "MIRD-277C.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MIRD-277/MIRD-277C.mp4",
+    "code": "MIRD-277",
+    "has_subtitle": true,
+    "no_subtitle": false
+  },
+  "MIRD-280": {
+    "filename": "MIRD-280.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MIRD-280/MIRD-280.mp4",
+    "code": "MIRD-280",
+    "has_subtitle": false,
+    "no_subtitle": true
+  },
+  "MIRD-259": {
+    "filename": "MIRD-259.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MIRD-259/MIRD-259.mp4",
+    "code": "MIRD-259",
+    "has_subtitle": true,
+    "no_subtitle": false
+  },
+  "MIDA-400": {
+    "filename": "MIDA-400.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MIDA-400/MIDA-400.mp4",
+    "code": "MIDA-400",
+    "has_subtitle": true,
+    "no_subtitle": false
+  },
+  "JUR-031": {
+    "filename": "JUR-031ch.mp4",
+    "path": "/srv/nas_share/Arr/uncen/JUR-031/JUR-031ch.mp4",
+    "code": "JUR-031",
+    "has_subtitle": true,
+    "no_subtitle": false
+  },
+  "OFJE-620": {
+    "filename": "OFJE-620B_UNC.mp4",
+    "path": "/srv/nas_share/Arr/uncen/OFJE-620/OFJE-620B_UNC.mp4",
+    "code": "OFJE-620",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "OFJE-620"
+  },
+  "MIDA-533": {
+    "filename": "MIDA-533.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MIDA-533/MIDA-533.mp4",
+    "code": "MIDA-533",
+    "has_subtitle": true,
+    "no_subtitle": false
+  },
+  "RCTD-716": {
+    "filename": "RCTD-716.mp4",
+    "path": "/srv/nas_share/Arr/uncen/RCTD-716/RCTD-716.mp4",
+    "code": "RCTD-716",
+    "has_subtitle": false,
+    "no_subtitle": true
+  },
+  "SNOS-197": {
+    "filename": "SNOS-197.mp4",
+    "path": "/srv/nas_share/Arr/uncen/SNOS-197/SNOS-197.mp4",
+    "code": "SNOS-197",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "SNOS-197"
+  },
+  "MIDA-604": {
+    "filename": "MIDA-604.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MIDA-604/MIDA-604.mp4",
+    "code": "MIDA-604",
+    "has_subtitle": false,
+    "no_subtitle": true
+  },
+  "IPZZ-703": {
+    "filename": "IPZZ-703.mp4",
+    "path": "/srv/nas_share/Arr/uncen/IPZZ-703/IPZZ-703.mp4",
+    "code": "IPZZ-703",
+    "has_subtitle": true,
+    "no_subtitle": false
+  },
+  "HUNTC-501": {
+    "filename": "HUNTC-501.mp4",
+    "path": "/srv/nas_share/Arr/uncen/HUNTC-501/HUNTC-501.mp4",
+    "code": "HUNTC-501",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "HUNTC-501"
+  },
+  "SONE-560": {
+    "filename": "SONE-560B.mp4",
+    "path": "/srv/nas_share/Arr/uncen/SONE-560/SONE-560B.mp4",
+    "code": "SONE-560",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "SONE-560"
+  },
+  "YUJ-063": {
+    "filename": "YUJ-063.mp4",
+    "path": "/srv/nas_share/Arr/uncen/YUJ-063/YUJ-063.mp4",
+    "code": "YUJ-063",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "YUJ-063"
+  },
+  "CAWD-958": {
+    "filename": "CAWD-958.mp4",
+    "path": "/srv/nas_share/Arr/uncen/CAWD-958/CAWD-958.mp4",
+    "code": "CAWD-958",
+    "has_subtitle": false,
+    "no_subtitle": true
+  },
+  "MIMK-267": {
+    "filename": "MIMK-267.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MIMK-267/MIMK-267.mp4",
+    "code": "MIMK-267",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "MIMK-267"
+  },
+  "MIDA-581": {
+    "filename": "MIDA-581.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MIDA-581/MIDA-581.mp4",
+    "code": "MIDA-581",
+    "has_subtitle": false,
+    "no_subtitle": true
+  },
+  "START-491": {
+    "filename": "START-491.mp4",
+    "path": "/srv/nas_share/Arr/uncen/START-491/START-491.mp4",
+    "code": "START-491",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "START-491"
+  },
+  "PFES-115": {
+    "filename": "PFES-115.mp4",
+    "path": "/srv/nas_share/Arr/uncen/PFES-115/PFES-115.mp4",
+    "code": "PFES-115",
+    "has_subtitle": true,
+    "no_subtitle": false
+  },
+  "MIDA-513": {
+    "filename": "MIDA-513.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MIDA-513/MIDA-513.mp4",
+    "code": "MIDA-513",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "MIDA-513"
+  },
+  "MIDA-438": {
+    "filename": "MIDA-438.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MIDA-438/MIDA-438.mp4",
+    "code": "MIDA-438",
+    "has_subtitle": true,
+    "no_subtitle": false
+  },
+  "OFJE-594": {
+    "filename": "OFJE-594C.mp4",
+    "path": "/srv/nas_share/Arr/uncen/OFJE-594/OFJE-594C.mp4",
+    "code": "OFJE-594",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "OFJE-594"
+  },
+  "START-463": {
+    "filename": "START-463.mp4",
+    "path": "/srv/nas_share/Arr/uncen/START-463/START-463.mp4",
+    "code": "START-463",
+    "has_subtitle": true,
+    "no_subtitle": false
+  },
+  "URE-138": {
+    "filename": "URE-138.mp4",
+    "path": "/srv/nas_share/Arr/uncen/URE-138/URE-138.mp4",
+    "code": "URE-138",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "URE-138"
+  },
+  "MDHR-002": {
+    "filename": "MDHR-002.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MDHR-002/MDHR-002.mp4",
+    "code": "MDHR-002",
+    "has_subtitle": true,
+    "no_subtitle": false,
+    "target_folder": "MDHR-002"
+  },
+  "MFYD-129": {
+    "filename": "MFYD-129.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MFYD-129/MFYD-129.mp4",
+    "code": "MFYD-129",
+    "has_subtitle": false
+  },
+  "MIDA-617": {
+    "filename": "MIDA-617.mp4",
+    "path": "/srv/nas_share/Arr/uncen/MIDA-617/MIDA-617.mp4",
+    "code": "MIDA-617",
+    "has_subtitle": true,
+    "no_subtitle": false
+  },
+  "RAPD-011": {
+    "filename": "RAPD-011.mp4",
+    "path": "/srv/nas_share/Arr/uncen/RAPD-011/RAPD-011.mp4",
+    "code": "RAPD-011",
+    "has_subtitle": false
+  },
+  "HUNTC-544": {
+    "filename": "HUNTC-544.mp4",
+    "path": "/srv/nas_share/Arr/uncen/HUNTC-544/HUNTC-544.mp4",
+    "code": "HUNTC-544",
+    "has_subtitle": true,
+    "no_subtitle": false
+  }
+}

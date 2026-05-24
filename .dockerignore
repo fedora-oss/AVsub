@@ -1,0 +1,11 @@
+node_modules
+.nuxt
+.output
+.git
+.env
+scratch
+*.log
+dist
+package-lock.json
+list_movies.json
+test_webtorrent.js

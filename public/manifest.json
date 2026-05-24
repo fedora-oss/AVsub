@@ -1,0 +1,24 @@
+{
+  "name": "AVsub PRO",
+  "short_name": "AVsub PRO",
+  "description": "Unified Anime/JAV Torrents & Movie Subtitles Search Portal",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08070b",
+  "theme_color": "#08070b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

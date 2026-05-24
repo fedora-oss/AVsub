@@ -1,0 +1,624 @@
+config_version: 3
+# API authentication credentials are stored in `auth.credentials.json` next to this file.
+# To reset credentials, stop the server, delete that file, then restart `javinizer api`.
+#
+# Setup endpoint protection (first-arriver takeover prevention):
+# Set JAVINIZER_SETUP_SECRET environment variable to require a bootstrap secret
+# for the /auth/setup endpoint. If not set, setup is only available from localhost.
+# Example: export JAVINIZER_SETUP_SECRET="my-secret-key"
+# When set, include X-Setup-Secret: my-secret-key header in the setup request.
+#
+# To allow setup from additional networks (e.g. Docker bridge), set
+# JAVINIZER_SETUP_TRUSTED_CIDRS to a comma-separated list of CIDRs.
+# Example: export JAVINIZER_SETUP_TRUSTED_CIDRS="172.16.0.0/12"
+# This adds the given networks to the default loopback-only allowlist.
+
+server:
+    host: localhost
+    port: 8080
+api:
+    security:
+        # CORS allowed origins for API and WebSocket connections
+        # - Specific origins only (wildcard "*" is NOT supported for security reasons)
+        # - Empty array [] means same-origin only
+        # - Add frontend origins if using a separate web server (e.g., "http://localhost:5173" for Vite dev server)
+        allowed_origins:
+            - http://localhost:8080
+            - http://localhost:5173
+            - http://127.0.0.1:8080
+            - http://127.0.0.1:5173
+        # Allowed directories for API file operations (organize, preview, etc.)
+        # Default is current working directory. For Docker, use /media
+        # Add your media library paths here
+        allowed_directories:
+            - .
+        # Explicitly deny specific directories (optional)
+        denied_directories: []
+        # Maximum number of files to return in a scan
+        max_files_per_scan: 10000
+        # Timeout for scan operations (seconds)
+        scan_timeout_seconds: 30
+        # Rate limiting for write endpoints (per IP, requests per minute)
+        # Set to 0 to disable. Default: 60
+        rate_limit:
+            requests_per_minute: 60
+        # Trusted reverse proxy IPs for X-Forwarded-Proto header validation.
+        # When configured, session cookies get the Secure flag if a request from
+        # a trusted proxy has X-Forwarded-Proto: https.
+        # Example: ["172.16.0.1"] for a Docker reverse proxy
+        trusted_proxies: []
+        # Force Secure flag on session cookies regardless of TLS detection.
+        # Use when TLS termination happens upstream and proxy IPs are dynamic.
+        force_secure_cookies: false
+        allow_unc: false
+        allowed_unc_servers: []
+system:
+    # File creation mask (umask) for created files and directories
+    # 002 = rwxrwxr-x (owner and group can write, others can read)
+    # 022 = rwxr-xr-x (only owner can write, others can read)
+    # Can be overridden with UMASK environment variable
+    umask: "002"
+    # Enable automatic version checking (notifications only, no auto-update)
+    version_check_enabled: true
+    # Interval between version checks in hours (default: 24)
+    version_check_interval_hours: 24
+    # Base directory for temporary files (posters, etc.)
+    # Can be overridden with JAVINIZER_TEMP_DIR environment variable
+    temp_dir: data/temp
+scrapers:
+    user_agent: Javinizer (+https://github.com/javinizer/Javinizer)
+    # Referer header for CDN compatibility (required by DMM/R18 CDN)
+    referer: https://www.dmm.co.jp/
+    # HTTP client timeout in seconds (default: 30)
+    timeout_seconds: 30
+    # Overall request timeout in seconds (default: 60)
+    request_timeout_seconds: 60
+    priority:
+        - r18dev
+        - libredmm
+        - dmm
+        - javlibrary
+        - javdb
+        - javbus
+        - jav321
+        - mgstage
+        - tokyohot
+        - aventertainment
+        - caribbeancom
+        - dlgetchu
+        - fc2
+        - javstash
+    # NEW: Global scrape_actress default (opt-out behavior)
+    scrape_actress: true
+    # NEW: Global Browser configuration
+    browser:
+        enabled: false # Master kill-switch (enable per-scraper below)
+        binary_path: "" # Auto-discovered if empty
+        timeout: 30 # Operation timeout (seconds)
+        max_retries: 3 # Retry attempts
+        headless: true # Run headless (hide browser window)
+        stealth_mode: true # Anti-detection measures
+        window_width: 1920 # Viewport width
+        window_height: 1080 # Viewport height
+        slow_mo: 0 # Slow motion (ms, for debugging)
+        block_images: true # Block images for speed
+        block_css: false # Block CSS (may break some sites)
+        user_agent: "" # Override UA (empty = use scraper's)
+        debug_visible: false # Show browser window for debugging
+    # Global FlareSolverr config for Cloudflare bypass.
+    # Per-scraper override: set flaresolverr at scraper level (e.g., scrapers.r18dev.flaresolverr).
+    flaresolverr:
+        enabled: false
+        url: "http://localhost:8191/v1"
+        timeout: 30
+        max_retries: 3
+        session_ttl: 300
+    # HTTP/SOCKS5 proxy configuration.
+    # - Define reusable profiles in `profiles`
+    # - Scraper uses `proxy.profile: profilename` to select a profile
+    # - FlareSolverr is configured at scraper level or globally (scrapers.flaresolverr)
+    proxy:
+        enabled: false
+        default_profile: "main" # Global default profile when proxy is enabled
+        profiles:
+            main:
+                url: "" # Examples: "http://proxy.example.com:8080", "socks5://localhost:1080"
+                username: "" # Optional authentication
+                password: "" # Optional authentication
+            backup:
+                url: ""
+                username: ""
+                password: ""
+    # Per-scraper proxy overrides (optional).
+    # Each scraper can override with: proxy.profile, proxy.url, etc.
+    # Per-scraper FlareSolverr: set flaresolverr at scraper level (not under proxy).
+    r18dev:
+        enabled: true
+        language: en # en | ja
+        request_delay: 1500 # Delay between requests in milliseconds (1.5 seconds to stay under 10 req/15s limit)
+        max_retries: 3 # Retry up to 3 times on rate limit (429)
+        respect_retry_after: true # Respect Retry-After header from server
+        rate_limit: 1500
+        retry_count: 3
+        timeout: 0
+        use_browser: false
+        use_flaresolverr: false
+        user_agent: ""
+    dmm:
+        enabled: false
+        use_browser: true # Enable browser for DMM streaming pages
+        # scrape_actress: null          # Optional: inherit from global (true)
+        # Or override: scrape_actress: false
+        request_delay: 0
+        max_retries: 0
+        user_agent: ""
+        use_flaresolverr: false
+        language: ""
+        rate_limit: 0
+        retry_count: 0
+        timeout: 0
+    libredmm:
+        enabled: false
+        request_delay: 500
+        base_url: "https://www.libredmm.com"
+        language: ""
+        rate_limit: 500
+        retry_count: 0
+        timeout: 0
+        use_browser: false
+        use_flaresolverr: false
+        user_agent: ""
+    mgstage:
+        enabled: false # Opt-in: requires age verification cookie (adc=1)
+        request_delay: 500 # Delay between requests in milliseconds
+        language: ""
+        rate_limit: 500
+        retry_count: 0
+        timeout: 0
+        use_browser: false
+        use_flaresolverr: false
+        user_agent: ""
+    # JavLibrary requires FlareSolverr for Cloudflare bypass.
+    # Configure flaresolverr at scrapers.flaresolverr or at scraper level.
+    javlibrary:
+        enabled: false
+        # Frontend scraper options:
+        # language: en, ja, cn, tw
+        # request_delay: milliseconds between requests
+        language: ja # Default Japanese
+        request_delay: 1000
+        base_url: "http://www.javlibrary.com"
+        cookies:
+            cf_clearance: ""
+            cf_bm: ""
+        user_agent: ""
+        # Proxy configuration:
+        # - enabled: true + profile: name  → Use specific profile
+        # - enabled: true (no profile)     → Inherit global default
+        # - enabled: false or omitted      → Direct (no proxy)
+        # Note: Global scrapers.proxy.enabled must be true for proxy to work.
+        proxy:
+            enabled: false
+            # profile: main  # Set enabled: true and uncomment to use proxy
+        use_flaresolverr: false # Enable to use global FlareSolverr for Cloudflare bypass
+        rate_limit: 1000
+        retry_count: 0
+        timeout: 0
+        use_browser: false
+    # JavDB: configure flaresolverr at scrapers.flaresolverr or per-scraper
+    javdb:
+        enabled: false
+        request_delay: 1000
+        base_url: "https://javdb.com"
+        # Example: proxy profile (flaresolverr configured globally or per-scraper)
+        # proxy:
+        #   enabled: true
+        #   profile: main
+        use_flaresolverr: false # Enable to use global FlareSolverr for Cloudflare bypass
+        language: ""
+        rate_limit: 1000
+        retry_count: 0
+        timeout: 0
+        use_browser: false
+        user_agent: ""
+    javbus:
+        enabled: false
+        language: ja
+        request_delay: 1000
+        base_url: "https://www.javbus.com"
+        # age=verified, dv=1, existmag=mag cookies are applied automatically by scraper.
+        use_flaresolverr: false # Enable to use global FlareSolverr for Cloudflare bypass
+        rate_limit: 1000
+        retry_count: 0
+        timeout: 0
+        use_browser: false
+        user_agent: ""
+    jav321:
+        enabled: false
+        request_delay: 1000
+        base_url: "https://jp.jav321.com"
+        language: ""
+        rate_limit: 1000
+        retry_count: 0
+        timeout: 0
+        use_browser: false
+        use_flaresolverr: false
+        user_agent: ""
+    tokyohot:
+        enabled: false
+        language: ja
+        request_delay: 1000
+        base_url: "https://www.tokyo-hot.com"
+        rate_limit: 1000
+        retry_count: 0
+        timeout: 0
+        use_browser: false
+        use_flaresolverr: false
+        user_agent: ""
+    aventertainment:
+        enabled: false
+        language: en
+        request_delay: 1000
+        base_url: "https://www.aventertainments.com"
+        scrape_bonus_screens: false # Append bonus image files (e.g., "特典ファイル ... (48 Pics)") to screenshot URLs
+        rate_limit: 1000
+        retry_count: 0
+        timeout: 0
+        use_browser: false
+        use_flaresolverr: false
+        user_agent: ""
+    dlgetchu:
+        enabled: false
+        request_delay: 1000
+        base_url: "http://dl.getchu.com"
+        language: ""
+        rate_limit: 1000
+        retry_count: 0
+        timeout: 0
+        use_browser: false
+        use_flaresolverr: false
+        user_agent: ""
+    caribbeancom:
+        enabled: false
+        language: ja
+        request_delay: 1000
+        base_url: "https://www.caribbeancom.com"
+        rate_limit: 1000
+        retry_count: 0
+        timeout: 0
+        use_browser: false
+        use_flaresolverr: false
+        user_agent: ""
+    fc2:
+        enabled: false
+        request_delay: 1000
+        base_url: "https://adult.contents.fc2.com"
+        language: ""
+        rate_limit: 1000
+        retry_count: 0
+        timeout: 0
+        use_browser: false
+        use_flaresolverr: false
+        user_agent: ""
+    javstash:
+        enabled: false # Opt-in - requires API key from javstash.org
+        api_key: "" # API key for authentication (or set JAVSTASH_API_KEY env var)
+        base_url: "https://javstash.org/graphql"
+        language: en # en | ja
+        request_delay: 1000
+        rate_limit: 1000
+        retry_count: 0
+        timeout: 0
+        use_browser: false
+        use_flaresolverr: false
+        user_agent: ""
+metadata:
+    priority:
+        actress:
+            - dmm
+            - r18dev
+            - libredmm
+        original_title:
+            - dmm
+            - r18dev
+            - libredmm
+        cover_url:
+            - dmm
+            - r18dev
+            - libredmm
+        description:
+            - dmm
+            - r18dev
+            - libredmm
+        director:
+            - dmm
+            - r18dev
+            - libredmm
+        genre:
+            - dmm
+            - r18dev
+            - libredmm
+        id:
+            - dmm
+            - r18dev
+            - libredmm
+        content_id:
+            - dmm
+            - r18dev
+            - libredmm
+        label:
+            - dmm
+            - r18dev
+            - libredmm
+        maker:
+            - dmm
+            - r18dev
+            - libredmm
+        poster_url:
+            - r18dev
+            - libredmm
+            - dmm
+        rating:
+            - dmm
+            - r18dev
+            - libredmm
+        release_date:
+            - dmm
+            - r18dev
+            - libredmm
+        runtime:
+            - dmm
+            - r18dev
+            - libredmm
+        series:
+            - dmm
+            - r18dev
+            - libredmm
+        screenshot_url:
+            - dmm
+            - r18dev
+            - libredmm
+        title:
+            - dmm
+            - r18dev
+            - libredmm
+        trailer_url:
+            - dmm
+            - r18dev
+            - libredmm
+    # Actress image database (SQLite-backed)
+    actress_database:
+        enabled: true
+        auto_add: true # Automatically add new actresses to database
+        convert_alias: false # Convert actress names using alias database
+    # Genre replacement/normalization database (SQLite-backed)
+    genre_replacement:
+        enabled: true
+        auto_add: true # Automatically add new genres with identity mapping (genre -> genre)
+    # Per-movie tag database (SQLite-backed)
+    # Allows adding custom tags to individual movies (appears in NFO files)
+    tag_database:
+        enabled: false # Enable per-movie tag lookup (opt-in feature)
+    # Metadata translation pipeline
+    translation:
+        enabled: false # Opt-in: disabled by default
+        provider: openai # openai | openai-compatible | anthropic | deepl | google
+        source_language: ja # e.g., en, ja, zh, auto
+        target_language: en # e.g., en, ja, zh
+        timeout_seconds: 60
+        apply_to_primary: true # Replace main metadata fields with translated text
+        overwrite_existing_target: true
+        fields:
+            title: true
+            original_title: true
+            description: true
+            director: true
+            maker: true
+            label: true
+            series: true
+            genres: true
+            actresses: true
+        openai:
+            # OpenAI-compatible endpoint (works with OpenAI, OpenRouter, and compatible providers)
+            base_url: https://api.openai.com/v1
+            api_key: "" # Tip: set via OPENAI_API_KEY env var
+            model: gpt-4o-mini
+        deepl:
+            mode: free # free | pro (API Free/Pro plans)
+            base_url: "" # Optional override; defaults by mode
+            api_key: "" # Tip: set via DEEPL_API_KEY env var
+        google:
+            mode: free # free (public endpoint) | paid (Cloud Translation API)
+            base_url: "" # Optional override
+            api_key: "" # Required for paid mode (GOOGLE_TRANSLATE_API_KEY)
+        openai_compatible:
+            base_url: http://localhost:11434/v1
+            api_key: "" # Optional for local/self-hosted endpoints
+            model: ""
+            enable_thinking: false # Automatically mapped to backend-specific thinking controls when supported
+        anthropic:
+            base_url: https://api.anthropic.com
+            api_key: "" # Required when provider=anthropic (set via ANTHROPIC_API_KEY env var)
+            model: claude-sonnet-4-20250514
+    # Genres to ignore/filter out. Supports both exact strings and regex patterns.
+    # Patterns starting with ^, ending with $, or containing regex metacharacters are treated as regex.
+    # Examples:
+    #   - "Sample"           # Exact match
+    #   - "^Featured"        # Starts with "Featured"
+    #   - ".*mosaic.*"       # Contains "mosaic"
+    #   - "^(HD|4K|VR)"      # Starts with HD, 4K, or VR
+    #   - "(?i)uncensored"   # Case-insensitive match for "uncensored"
+    ignore_genres: []
+    # ignore_genres:
+    #   - "^Featured Actress"
+    #   - ".*mosaic.*"
+    #   - "Sample"
+    #   - "Trailer"
+    required_fields: []
+    nfo:
+        enabled: true
+        display_title: <TITLE>
+        filename_template: <ID>.nfo
+        first_name_order: true
+        actress_language_ja: false
+        per_file: false # Generate one NFO per multi-part file when true
+        # Unknown actress behavior:
+        #   skip (default) - omit unknown actresses entirely
+        #   fallback - use unknown_actress_text as placeholder when no actress found
+        unknown_actress_mode: skip
+        unknown_actress_text: Unknown
+        actress_as_tag: false
+        add_generic_role: false # Add generic "Actress" role to all actresses
+        alt_name_role: false # Use alternate name (Japanese) in role field
+        include_originalpath: false # Include source filename in NFO
+        include_stream_details: false
+        include_fanart: true
+        include_trailer: true
+        rating_source: r18dev
+        tag: []
+        tagline: ""
+        credits: []
+    word_replacement:
+        enabled: false
+    completeness:
+        enabled: false
+        tiers:
+            essential:
+                weight: 50
+                fields:
+                    - title
+                    - poster_url
+                    - cover_url
+                    - actresses
+                    - genres
+            important:
+                weight: 35
+                fields:
+                    - description
+                    - maker
+                    - release_date
+                    - director
+                    - runtime
+                    - trailer_url
+                    - screenshot_urls
+            nice_to_have:
+                weight: 15
+                fields:
+                    - label
+                    - series
+                    - rating_score
+                    - original_title
+                    - translations
+file_matching:
+    extensions:
+        - .mp4
+        - .mkv
+        - .avi
+        - .wmv
+        - .flv
+    min_size_mb: 0
+    exclude_patterns:
+        - '*-trailer*'
+        - '*-sample*'
+    regex_enabled: false
+    regex_pattern: ([a-zA-Z|tT28]+-\d+[zZ]?[eE]?)(?:-pt)?(\d{1,2})?
+output:
+    folder_format: <ID> [<STUDIO>] - <TITLE> (<YEAR>)
+    # Multi-language template tags (for translated metadata):
+    #   <TITLE:EN>      - English title translation
+    #   <TITLE:JA>      - Japanese title translation
+    #   <TITLE:JA|EN>   - Japanese with English fallback
+    #   <MAKER:JA>      - Japanese maker name
+    #   Supported tags: TITLE, MAKER, LABEL, SERIES, DIRECTOR, DESCRIPTION, ORIGINALTITLE, STUDIO
+    # Example: <ID> [<MAKER:JA>] - <TITLE:EN> (<YEAR>)
+    # File format supports multi-part templates:
+    #   - <PART> or <DISC>: Part number (1, 2, 3...), use <PART:2> for zero-padding (01, 02, 03...)
+    #   - <PARTSUFFIX>: Original suffix from filename (e.g., "-pt1", "-A", "-cd2")
+    #   - <IF:MULTIPART>...</IF>: Conditional block for multi-part files only
+    # Examples:
+    #   <ID><PARTSUFFIX>           → IPX-535-pt1 (preserves original suffix style)
+    #   <ID>-pt<PART>              → IPX-535-pt1 (custom suffix format)
+    #   <ID>-CD<PART:2>            → IPX-535-CD01 (zero-padded disc number)
+    #   <ID><IF:MULTIPART>-pt<PART></IF>  → IPX-535-pt1 (only for multi-part, IPX-535 for single)
+    file_format: <ID><IF:MULTIPART>-pt<PART></IF>
+    subfolder_format:
+        - <ID>
+    delimiter: ', '
+    max_title_length: 100
+    max_path_length: 240
+    move_subtitles: false
+    subtitle_extensions:
+        - .srt
+        - .ass
+        - .ssa
+        - .smi
+        - .vtt
+    rename_folder_in_place: false
+    move_to_folder: true
+    rename_file: true
+    allow_revert: false
+    group_actress: false
+    # Media file naming templates (support placeholders like <ID>, <TITLE>, <INDEX>, etc.)
+    poster_format: <ID><IF:MULTIPART>-pt<PART></IF>-poster.jpg # Vertical poster image (e.g., IPX-535-poster.jpg, IPX-535-pt1-poster.jpg)
+    fanart_format: <ID><IF:MULTIPART>-pt<PART></IF>-fanart.jpg # Horizontal cover/background image (e.g., IPX-535-fanart.jpg, IPX-535-pt1-fanart.jpg)
+    trailer_format: <ID>-trailer.mp4 # Trailer video file
+    screenshot_format: fanart<INDEX>.jpg # Screenshots in extrafanart folder (e.g., fanart1.jpg, fanart2.jpg)
+    # Use <INDEX:2> for zero-padded numbers (fanart01.jpg, fanart02.jpg)
+    screenshot_folder: extrafanart # Subfolder for storing screenshots
+    screenshot_padding: 1 # Zero-padding for fallback numbering (ignored if <INDEX> in template)
+    actress_folder: .actors # Subfolder for storing actress images
+    actress_format: <ACTORNAME>.jpg # Actress image naming (e.g., Momo Sakura.jpg)
+    # Download toggles for each media type
+    download_cover: true # Download horizontal cover/fanart image
+    download_poster: true # Download vertical poster image
+    download_extrafanart: true # Download screenshots to extrafanart folder
+    download_trailer: true
+    download_actress: true
+    download_timeout: 60
+    # Download proxy override (optional):
+    # - If disabled, downloads use scrapers.proxy automatically when scraper proxy is enabled.
+    # - Enable only when you need a separate proxy just for downloads.
+    download_proxy:
+        enabled: false
+        profile: "" # Optional: select a different named profile than scrapers.proxy.default_profile
+    operation_mode: organize
+database:
+    type: sqlite
+    dsn: data/javinizer.db
+    log_level: silent
+logging:
+    level: info
+    format: text
+    # stdout, stderr, /path/to/file.log, or comma-separated (e.g. "stdout,data/logs/javinizer.log")
+    # Default: dual output to console and file for persistence
+    # NOTE: JAVINIZER_LOG_DIR only rewrites file targets listed here.
+    # If output is only stdout/stderr, JAVINIZER_LOG_DIR has no effect.
+    # Docker: JAVINIZER_LOG_DIR=/javinizer/logs rewrites file path to /javinizer/logs/javinizer.log
+    output: "stdout,data/logs/javinizer.log"
+    # Log rotation settings (applies to file outputs only)
+    max_size_mb: 10 # Max size in MB before rotation (0 = disabled)
+    max_backups: 5 # Max number of old log files to keep (0 = unlimited)
+    max_age_days: 0 # Max age in days to keep log files (0 = no limit)
+    compress: true # Compress rotated files (.gz)
+performance:
+    max_workers: 5
+    worker_timeout: 300
+    buffer_size: 100
+    update_interval: 100
+# MediaInfo configuration for video metadata extraction
+mediainfo:
+    # Enable MediaInfo CLI fallback for unsupported formats (WMV, ASF, exotic containers)
+    # Requires 'mediainfo' binary installed on system (https://mediaarea.net/MediaInfo)
+    # Native Go parsers handle: MP4, MOV, MKV, AVI, FLV
+    cli_enabled: false
+    # Path to mediainfo binary (default: searches system PATH)
+    # Examples: "mediainfo", "/usr/local/bin/mediainfo", "C:\\Program Files\\MediaInfo\\MediaInfo.exe"
+    cli_path: "mediainfo"
+    # Timeout for CLI execution in seconds (default: 30)
+    cli_timeout: 30
+# Web UI configuration
+webui:
+    # Default view mode for the review page
+    # Options: detail, grid-poster, grid-cover
+    # Default: grid-poster
+    default_review_view: grid-poster

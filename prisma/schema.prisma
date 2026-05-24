@@ -1,0 +1,102 @@
+// Prisma schema mirroring the javinizer.db SQLite structure (read-only)
+// Database managed externally by Javinizer — do NOT run prisma migrate on this file.
+// Use prisma db pull / introspection only.
+
+datasource db {
+  provider = "sqlite"
+  url      = env("JAVINIZER_DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+// ─── Core Tables ────────────────────────────────────────────────────────────
+
+model Movie {
+  content_id                  String    @id
+  id                          String?                        // e.g. "BLK-698"
+  display_title               String?
+  title                       String?
+  original_title              String?
+  description                 String?
+  release_date                DateTime?
+  release_year                Int?
+  runtime                     Int?
+  director                    String?
+  maker                       String?
+  label                       String?
+  series                      String?
+  rating_score                Float?
+  rating_votes                Int?
+  poster_url                  String?
+  cover_url                   String?
+  cropped_poster_url          String?
+  should_crop_poster          Boolean?
+  trailer_url                 String?
+  original_file_name          String?
+  screenshots                 String?                        // JSON array of screenshot URLs
+  source_name                 String?
+  source_url                  String?
+  created_at                  DateTime?
+  updated_at                  DateTime?
+  original_poster_url         String?
+  original_cropped_poster_url String?
+  original_should_crop_poster Boolean?
+
+  actresses MovieActress[]
+  genres    MovieGenre[]
+
+  @@map("movies")
+}
+
+model Actress {
+  id            Int     @id @default(autoincrement())
+  dmm_id        Int?
+  first_name    String?
+  last_name     String?
+  japanese_name String?
+  thumb_url     String?
+  aliases       String?
+  created_at    DateTime?
+  updated_at    DateTime?
+
+  movies  MovieActress[]
+
+  @@map("actresses")
+}
+
+model Genre {
+  id   Int    @id @default(autoincrement())
+  name String?
+
+  movies MovieGenre[]
+
+  @@map("genres")
+}
+
+// ─── Junction Tables ─────────────────────────────────────────────────────────
+
+model MovieActress {
+  movie_content_id String
+  actress_id       Int
+
+  movie   Movie    @relation(fields: [movie_content_id], references: [content_id], onDelete: Cascade)
+  actress Actress? @relation(fields: [actress_id], references: [id], onDelete: Cascade)
+
+  @@id([movie_content_id, actress_id])
+  @@map("movie_actresses")
+}
+
+model MovieGenre {
+  movie_content_id String
+  genre_id         Int
+
+  movie Movie  @relation(fields: [movie_content_id], references: [content_id], onDelete: Cascade)
+  genre Genre? @relation(fields: [genre_id], references: [id], onDelete: Cascade)
+
+  @@id([movie_content_id, genre_id])
+  @@map("movie_genres")
+}
+

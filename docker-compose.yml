@@ -1,0 +1,58 @@
+services:
+  avsub:
+    image: ${AVSUB_IMAGE:-ghcr.io/username/avsub:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: avsub
+    restart: unless-stopped
+    network_mode: "container:gluetun_pia"
+    volumes:
+      - ${MOVIE_DIRECTORY_REAL}:/movies/uncen
+      - ${MOVIE_DIRECTORY_SYNC}:/movies/sync
+      - /srv/nas_share/Database/avsub:/data
+      - /srv/nas_share/Database/javinizer/javinizer.db:/data/javinizer.db
+    env_file:
+      - .env
+
+    # dns:
+    #   - 1.1.1.1
+
+  javinizer:
+    image: ghcr.io/javinizer/javinizer-go:latest
+    container_name: javinizer
+    restart: unless-stopped
+    ports:
+      - "9999:9999"
+    volumes:
+      - ${MOVIE_DIRECTORY_REAL}:/media/uncen
+      - ${MOVIE_DIRECTORY_SYNC}:/media/sync
+      - /srv/nas_share/Database/javinizer:/javinizer
+    environment:
+      - TZ=${TZ:-Asia/Tokyo}
+      - JAVINIZER_TEMP_DIR=/javinizer/temp
+      - JAVINIZER_ALLOW_LOCAL_PROXY=true
+      - JAVINIZER_ALLOW_PRIVATE_IPS=true
+    healthcheck:
+      test: ["CMD", "wget", "--method=GET", "-O", "/dev/null", "-q", "http://localhost:9999/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_LABEL_ENABLE=false
+    # Only monitor and update the 'avsub' container to prevent disruptions elsewhere
+    command: --interval 300 avsub
+
+# networks:
+#   traefik-network:
+#     external: true

@@ -1,0 +1,22 @@
+// AVsub application database — writable, managed by Prisma migrations
+// This is the app's OWN database (avsub.db), separate from javinizer.db (read-only).
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../node_modules/.prisma/avsub-client"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+// Example: track which movies the user has downloaded subtitles for
+model SubtitleDownload {
+  id         Int      @id @default(autoincrement())
+  movieCode  String
+  srtFile    String
+  targetPath String
+  createdAt  DateTime @default(now())
+}

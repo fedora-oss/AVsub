@@ -1,0 +1,39 @@
+{
+  "name": "AVsub",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "prisma generate && nuxt build",
+    "dev": "prisma generate && nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@chenglou/pretext": "^0.0.7",
+    "@ghostery/adblocker-playwright": "^2.15.0",
+    "adm-zip": "^0.5.17",
+    "cheerio": "^1.2.0",
+    "chokidar": "^3.6.0",
+    "nuxt": "^4.4.4",
+    "playwright": "^1.59.1",
+    "torrent-stream": "^1.2.1",
+    "vue": "^3.5.33",
+    "vue-router": "^5.0.6",
+    "@prisma/client": "5.22.0",
+    "prisma": "5.22.0"
+  },
+  "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.14.0",
+    "@types/node": "^25.9.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild",
+      "@parcel/watcher"
+    ]
+  }
+}
