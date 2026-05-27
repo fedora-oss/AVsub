@@ -2,8 +2,14 @@
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   modules: [
-    '@nuxtjs/tailwindcss'
+    '@nuxtjs/tailwindcss',
+    '@nuxt/eslint'
   ],
+  eslint: {
+    config: {
+      typescript: true
+    }
+  },
   devtools: { enabled: true },
   typescript: {
     strict: true
@@ -22,7 +28,8 @@ export default defineNuxtConfig({
       link: [
         { rel: 'manifest', href: '/manifest.json' },
         { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
-        { rel: 'icon', type: 'image/png', href: '/icon.png' }
+        { rel: 'icon', type: 'image/png', href: '/icon.png' },
+        { rel: 'stylesheet', href: 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css' }
       ]
     }
   },

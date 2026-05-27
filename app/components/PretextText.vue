@@ -51,7 +51,7 @@ watch(
 let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
-  if (!process.client || !containerRef.value) return
+  if (!import.meta.client || !containerRef.value) return
 
   // Initial width read
   width.value = containerRef.value.clientWidth

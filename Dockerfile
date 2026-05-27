@@ -18,8 +18,11 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 
 COPY . .
 
-# Generate the Prisma Client (javinizer.db models → @prisma/client)
-RUN JAVINIZER_DATABASE_URL="file:./javinizer.db" npx prisma generate --schema=prisma/schema.prisma
+# Generate the Prisma Client for Javinizer library (postgresql → @prisma/client)
+RUN JAVINIZER_DATABASE_URL="postgresql://javinizer:javinizer_password@postgresql:5432/javinizer?schema=public" npx prisma generate --schema=prisma/schema.prisma
+
+# Generate the Prisma Client for AVsub app database (postgresql → .prisma/avsub-client)
+RUN DATABASE_URL="postgresql://javinizer:javinizer_password@postgresql:5432/avsub?schema=public" npx prisma generate --schema=prisma/schema.avsub.prisma
 
 # Build the Nuxt production output
 RUN pnpm build

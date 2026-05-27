@@ -27,10 +27,12 @@ async function getBlocker() {
 
 /** Extract JAV code (e.g. "IPX-535") from magnet or string */
 function extractJavCode(str: string): string | null {
-  const match = str.match(/\b([A-Za-z]{2,8})-?(\d{2,6})\b/)
+  const cleaned = str.replace(/hhd-?800/gi, '')
+  const match = cleaned.match(/\b([A-Za-z]{2,8})-?(\d{2,6})\b/)
   if (!match?.[1] || !match?.[2]) return null
   return `${match[1].toUpperCase()}-${match[2]}`
 }
+
 
 /**
  * Searches and downloads subtitle for a given JAV code from avsubtitles.com
@@ -258,8 +260,8 @@ export default defineEventHandler(async (event) => {
 
   // 3. Login and add torrent to qBittorrent
   const qbUrl = (process.env.QBITTORRENT_URL || 'http://qbittorrent').replace(/\/$/, '')
-  const username = process.env.QBITTORRENT_USERNAME || 'admin'
-  const password = process.env.QBITTORRENT_PASSWORD || 'Qu4chuo!'
+  const username = process.env.QBITTORRENT_USERNAME
+  const password = process.env.QBITTORRENT_PASSWORD
 
   try {
     const loginUrl = `${qbUrl}/api/v2/auth/login`

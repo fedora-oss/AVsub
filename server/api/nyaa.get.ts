@@ -1,6 +1,6 @@
 import { defineEventHandler, getQuery, createError } from 'h3'
 import * as cheerio from 'cheerio'
-import { TorrentResult } from '~/types'
+import type { TorrentResult } from '~/types'
 import { fetchWithCustomDns } from '../utils/dns-fetch'
 
 const BASE_URL = (process.env.NYAA_URL || 'https://nyaa.si').replace(/\/$/, '')
@@ -10,7 +10,7 @@ function getLevenshteinDistance(a: string, b: string): number {
   if (b.length === 0) return a.length
 
   let prevRow = Array.from({ length: b.length + 1 }, (_, i) => i)
-  let currRow = new Array<number>(b.length + 1)
+  const currRow = new Array<number>(b.length + 1)
 
   for (let i = 1; i <= a.length; i++) {
     currRow[0] = i

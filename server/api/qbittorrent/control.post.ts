@@ -15,11 +15,19 @@ export default defineEventHandler(async (event) => {
   try {
     let response: Response
     if (action === 'pause') {
-      console.log(`[QBit Control] Pausing torrent: ${hash}`)
+      console.log(`[QBit Control] Pausing torrent: ${hash} (attempting legacy /pause)`)
       response = await qbitPost('/api/v2/torrents/pause', `hashes=${encodeURIComponent(hash)}`)
+      if (response.status === 404) {
+        console.log(`[QBit Control] /pause returned 404. Retrying with v5.0+ /stop endpoint...`)
+        response = await qbitPost('/api/v2/torrents/stop', `hashes=${encodeURIComponent(hash)}`)
+      }
     } else if (action === 'resume') {
-      console.log(`[QBit Control] Resuming torrent: ${hash}`)
+      console.log(`[QBit Control] Resuming torrent: ${hash} (attempting legacy /resume)`)
       response = await qbitPost('/api/v2/torrents/resume', `hashes=${encodeURIComponent(hash)}`)
+      if (response.status === 404) {
+        console.log(`[QBit Control] /resume returned 404. Retrying with v5.0+ /start endpoint...`)
+        response = await qbitPost('/api/v2/torrents/start', `hashes=${encodeURIComponent(hash)}`)
+      }
     } else if (action === 'delete') {
       console.log(`[QBit Control] Deleting torrent: ${hash} (deleteFiles=${deleteFiles})`)
       response = await qbitPost('/api/v2/torrents/delete', `hashes=${encodeURIComponent(hash)}&deleteFiles=${deleteFiles}`)

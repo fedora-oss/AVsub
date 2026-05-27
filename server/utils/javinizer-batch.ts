@@ -103,7 +103,8 @@ export function renameMovieFiles(baseDir: string = MOVIES_DIR): { renamed: strin
 }
 
 /**
- * Scans directories recursively and deletes any video files matching junk Regex patterns.
+ * Scans directories recursively and deletes any junk files matching Regex patterns,
+ * while safely protecting legitimate movie files and assets that contain the JAV code.
  */
 export function cleanupJunkVideos(baseDir: string = MOVIES_DIR, patterns: string[] = []): { deleted: string[]; errors: string[] } {
   const deleted: string[] = []
@@ -111,7 +112,7 @@ export function cleanupJunkVideos(baseDir: string = MOVIES_DIR, patterns: string
 
   if (patterns.length === 0) return { deleted, errors }
 
-  console.log(`[cleanup-junk] Scanning ${baseDir} for junk video files matching Regex patterns:`, patterns)
+  console.log(`[cleanup-junk] Scanning ${baseDir} for junk files matching Regex patterns:`, patterns)
   
   const regexes = patterns.map(p => {
     try {
@@ -124,12 +125,28 @@ export function cleanupJunkVideos(baseDir: string = MOVIES_DIR, patterns: string
 
   if (regexes.length === 0) return { deleted, errors }
 
-  // Recursively find all video files
-  const videoFiles = walkDir(baseDir, (f) => /\.(mp4|mkv|avi|wmv|mov)$/i.test(f))
+  // Recursively find ALL files under baseDir
+  const allFiles = walkDir(baseDir, () => true)
 
-  for (const filePath of videoFiles) {
+  for (const filePath of allFiles) {
     try {
+      const dir = path.dirname(filePath)
       const base = path.basename(filePath)
+      const parent = path.basename(dir)
+
+      // Skip checking if it doesn't exist
+      if (!fs.existsSync(filePath)) continue
+
+      // Protect movie files and their subtitles/assets if they contain the JAV code (parent folder name)
+      const parentLower = parent.toLowerCase()
+      const baseLower = base.toLowerCase()
+      const baseDirNameLower = path.basename(baseDir).toLowerCase()
+
+      if (parentLower !== '.' && parentLower !== baseDirNameLower && baseLower.includes(parentLower)) {
+        // Safe: This is the actual movie file or its subtitle (e.g. MIDA-533.mp4 or [x18.tv]MIDA-533.mp4 inside folder MIDA-533)
+        continue
+      }
+
       const isJunk = regexes.some(r => r.test(base))
 
       if (isJunk) {
@@ -137,10 +154,10 @@ export function cleanupJunkVideos(baseDir: string = MOVIES_DIR, patterns: string
         fs.accessSync(filePath, fs.constants.W_OK)
         fs.unlinkSync(filePath)
         deleted.push(filePath)
-        console.log(`[cleanup-junk] Successfully deleted junk video file: ${filePath}`)
+        console.log(`[cleanup-junk] Successfully deleted junk file: ${filePath}`)
       }
     } catch (err: any) {
-      const msg = `Failed to delete junk video file '${filePath}': ${err.message}`
+      const msg = `Failed to delete junk file '${filePath}': ${err.message}`
       errors.push(msg)
       console.error(`[cleanup-junk] ${msg}`)
     }
@@ -192,13 +209,10 @@ export interface BatchJobStatus {
 }
 
 /**
- * Lists all mp4/srt files in `dir` to build the `files` array for the batch API.
+ * Lists all media/subtitle files in `dir` recursively to build the `files` array for the batch API.
  */
 function listMovieFiles(dir: string = MOVIES_DIR): string[] {
-  if (!fs.existsSync(dir)) return []
-  return fs.readdirSync(dir, { withFileTypes: true })
-    .filter((e) => e.isFile() && /\.(mp4|srt)$/i.test(e.name))
-    .map((e) => path.join(dir, e.name))
+  return walkDir(dir, (f) => /\.(mp4|mkv|avi|wmv|mov|srt|vtt)$/i.test(f))
 }
 
 /**
@@ -211,7 +225,15 @@ export async function batchScrape(opts: BatchScrapeOptions = {}): Promise<string
   const destination = opts.destination ?? JAVINIZER_MOVIE_DIR
   // localDir = path trong AVsub container để list file thực tế
   const localDir = opts.localDir ?? MOVIES_DIR
-  const files = opts.files ?? listMovieFiles(localDir)
+  const scannedFiles = opts.files ?? listMovieFiles(localDir)
+
+  // Map absolute local paths to Javinizer's container mounts
+  const files = scannedFiles.map((file) => {
+    if (file.startsWith(localDir)) {
+      return path.join(destination, path.relative(localDir, file))
+    }
+    return file
+  })
 
   const payload = {
     array_strategy: opts.arrayStrategy ?? 'merge',

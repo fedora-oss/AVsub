@@ -1,0 +1,168 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [develop, feature/ci-restructure-2026-05] # Chỉ chạy khi push code lên develop
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag (empty = HEAD SHA)"
+        required: false
+        default: ""
+      skip_verify:
+        description: "Skip lint+test verify (emergency only)"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-dev # Chỉ còn 1 môi trường nên group cố định là dev
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/edubank-backend
+
+jobs:
+  # ─── CI gate ──────────────────────────────────────────────────────────────
+  verify:
+    if: ${{ github.event.inputs.skip_verify != 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/test
+      REDIS_URL: redis://localhost:6379/0
+      SUPABASE_JWT_SECRET: test-secret-for-ci-only
+      DB_DISABLE_STATEMENT_CACHE: "false"
+      ENVIRONMENT: development
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --all-extras --all-groups
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Pytest
+        run: uv run pytest -v --tb=short
+
+  setup:
+    needs: verify
+    if: ${{ always() && (needs.verify.result == 'success' || needs.verify.result == 'skipped') }}
+    runs-on: ubuntu-24.04
+    outputs:
+      image_tag: ${{ steps.env.outputs.image_tag }}
+    steps:
+      - name: Determine tag
+        id: env
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          [ -z "$TAG" ] && TAG="${GITHUB_SHA::12}"
+          echo "image_tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "→ Deploying $TAG to dev"
+
+  build:
+    needs: setup
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          provenance: false
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.setup.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  deploy:
+    needs: [setup, build]
+    # Chỉ định job này chạy trên Mini PC của bạn qua tag self-hosted
+    runs-on: self-hosted
+    timeout-minutes: 10
+    environment: development
+
+    steps:
+      # Checkout code về máy Runner để có sẵn file docker-compose.dev.yml (nếu file này nằm trong repo)
+      - uses: actions/checkout@v4
+      
+      # Tự động login vào GHCR trên Mini PC
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image & Run container
+        env:
+          IMAGE_TAG: ${{ needs.setup.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          
+          # Đảm bảo file .env.dev tồn tại (bạn có thể thay thế bước tạo env này bằng cách 
+          # lấy từ GitHub Secrets nếu cần)
+          touch .env.dev
+          # Xóa dòng APP_TAG cũ nếu có và ghi tag mới vào
+          sed -i '/^APP_TAG=/d' .env.dev
+          echo "APP_TAG=${IMAGE_TAG}" >> .env.dev
+
+          # Chạy docker compose
+          # Giả định file cho dev là docker-compose.dev.yml, sửa lại nếu bạn dùng tên khác
+          COMPOSE="docker compose --env-file .env.dev -f docker-compose.dev.yml"
+
+          $COMPOSE pull app worker
+          $COMPOSE up -d caddy app worker redis
+
+          echo "⏳ Đang kiểm tra sức khỏe của ứng dụng..."
+          for i in {1..30}; do
+            if $COMPOSE exec -T app curl -fsS http://localhost:8000/health >/dev/null 2>&1; then
+              echo "✅ App healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          
+          echo "❌ App unhealthy after 60s"
+          $COMPOSE logs --tail=100 app
+          exit 1

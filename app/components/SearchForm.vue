@@ -18,7 +18,7 @@ const handleSubmit = () => {
 
 <template>
   <div class="search-container">
-    <form @submit.prevent="handleSubmit" class="search-form">
+    <form class="search-form" @submit.prevent="handleSubmit">
       <div class="input-group">
         <input
           v-model="keyword"
@@ -26,7 +26,7 @@ const handleSubmit = () => {
           placeholder="Search JAV/Anime magnet links & JAV subtitles (e.g. MIDA-533, Demon Slayer)..."
           class="search-input"
           :disabled="loading"
-        />
+        >
         <button type="submit" class="search-button" :disabled="loading || !keyword.trim()">
           <span v-if="loading">Searching...</span>
           <span v-else>Search</span>

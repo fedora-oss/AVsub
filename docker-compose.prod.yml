@@ -1,4 +1,5 @@
----
+version: '3.8'
+
 services:
   # 🔍 AVsub - Subtitle Search & Automation Engine (Vue/Nuxt 4)
   avsub:
@@ -8,9 +9,8 @@ services:
       dockerfile: Dockerfile
     container_name: avsub
     restart: unless-stopped
-    network_mode: "container:gluetun_pia"
-    env_file:
-      - .env
+    ports:
+      - "3000:3000"
     volumes:
       # Mount thư mục chứa phim JAV chính (AVsub container thấy tại /movies/uncen)
       - ${MOVIE_DIRECTORY_REAL}:/movies/uncen
@@ -34,8 +34,8 @@ services:
     depends_on:
       javinizer:
         condition: service_healthy
-      postgresql:
-        condition: service_started
+    networks:
+      - avsub-network
 
   # 🎭 Javinizer - JAV Metadata Scraper & File Organizer Engine
   javinizer:
@@ -52,44 +52,41 @@ services:
       # Thư mục đồng bộ tạm thời (Javinizer thấy tại /media/sync)
       - ${MOVIE_DIRECTORY_SYNC}:/media/sync
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
+      - TZ=${TZ:-Asia/Ho_Chi_Minh}
       - JAVINIZER_TEMP_DIR=/javinizer/temp
       - JAVINIZER_ALLOW_LOCAL_PROXY=true
       - JAVINIZER_ALLOW_PRIVATE_IPS=true
     healthcheck:
-      test: ["CMD", "wget", "--method=GET", "-O", "/dev/null", "-q", "http://localhost:9999/health"]
-      interval: 30s
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9999/health"]
+      interval: 10s
       timeout: 3s
-      retries: 3
-      start_period: 10s
+      retries: 5
+      start_period: 15s
+    networks:
+      - avsub-network
 
-  # 🐘 PostgreSQL - High-performance Relational Database for Javinizer Library
-  postgresql:
-    image: postgres:15-alpine
-    container_name: postgresql
+  # 🧲 qBittorrent - High-performance Torrent Downloader
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: javinizer
-      POSTGRES_USER: javinizer
-      POSTGRES_PASSWORD: javinizer_password
-    volumes:
-      - ${POSTGRES_DATA_PATH:-/srv/nas_share/Database/postgres}:/var/lib/postgresql/data
     ports:
-      - "5433:5432"
-
-  watchtower:
-    image: containrrr/watchtower:latest
-    container_name: watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - "8080:8080" # WebUI Port
+      - "6881:6881" # Torrent Traffic Port
+      - "6881:6881/udp"
     environment:
-      - WATCHTOWER_POLL_INTERVAL=300
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_LABEL_ENABLE=false
-    # Only monitor and update the 'avsub' container to prevent disruptions elsewhere
-    command: --interval 300 avsub
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ:-Asia/Ho_Chi_Minh}
+      - WEBUI_PORT=8080
+    volumes:
+      # Lưu cấu hình và CSDL torrents
+      - ./qbit-config:/config
+      # Tải trực tiếp torrents về thư mục đồng bộ tạm thời của hệ thống
+      - ${MOVIE_DIRECTORY_SYNC}:/downloads
+    networks:
+      - avsub-network
 
-# networks:
-#   traefik-network:
-#     external: true
+networks:
+  avsub-network:
+    driver: bridge

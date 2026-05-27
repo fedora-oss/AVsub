@@ -30,10 +30,12 @@ const processedFiles = new Set<string>()
 
 // Helper to extract JAV Code
 export function extractJavCode(str: string): string | null {
-  const match = str.match(/\b([A-Za-z]{2,10})-?(\d{2,10})\b/)
+  const cleaned = str.replace(/hhd-?800/gi, '')
+  const match = cleaned.match(/\b([A-Za-z]{2,10})-?(\d{2,10})\b/)
   if (!match?.[1] || !match?.[2]) return null
   return `${match[1].toUpperCase()}-${match[2]}`
 }
+
 
 // Helper to log watcher tasks into Nitro storage
 export async function addWatcherTask(task: Omit<WatcherTask, 'id' | 'timestamp'>): Promise<WatcherTask> {
@@ -70,17 +72,17 @@ export async function updateWatcherTask(id: string, updates: Partial<WatcherTask
  * Triggers the post-download pipeline immediately and asynchronously in the background.
  */
 function triggerPipeline(code: string) {
-  console.log(`[Watcher] [${code}] Triggering post-download pipeline immediately…`)
+  console.log(`[Watcher] [${code}] Triggering targeted post-download sync immediately…`)
   try {
-    runTask('javinizer:pipeline')
+    runTask('javinizer:pipeline', { payload: { movieCode: code } })
       .then((res: any) => {
-        console.log(`[Watcher] [${code}] Post-download pipeline finished successfully:`, res)
+        console.log(`[Watcher] [${code}] Post-download targeted sync finished successfully:`, res)
       })
       .catch((err: any) => {
-        console.error(`[Watcher] [${code}] Post-download pipeline encountered error:`, err.message)
+        console.error(`[Watcher] [${code}] Post-download targeted sync encountered error:`, err.message)
       })
   } catch (err: any) {
-    console.error(`[Watcher] [${code}] Failed to execute pipeline task:`, err.message)
+    console.error(`[Watcher] [${code}] Failed to execute targeted sync task:`, err.message)
   }
 }
 

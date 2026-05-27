@@ -51,13 +51,15 @@ const DEFAULT_SCRAPERS = [
  * Returns normalized code like "ABP-420".
  */
 export function extractJavCode(keyword: string): string | null {
-  const match = keyword.trim().match(/\b([A-Za-z]{2,8})-?(\d{2,6})\b/)
+  const cleaned = keyword.replace(/hhd-?800/gi, '')
+  const match = cleaned.trim().match(/\b([A-Za-z]{2,8})-?(\d{2,6})\b/)
   if (!match) return null
   const label = (match[1] ?? '').toUpperCase()
   const num = match[2] ?? ''
   if (!label || !num) return null
   return `${label}-${num}`
 }
+
 
 /**
  * Call javinizer HTTP API to scrape metadata for a JAV code.

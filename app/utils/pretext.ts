@@ -8,7 +8,7 @@ const prepareCache = new Map<string, any>()
  * Only runs in client-side environment.
  */
 export function getPreparedText(text: string, font: string): any {
-  if (!process.client) return null
+  if (!import.meta.client) return null
   
   const key = `${font}::${text}`
   if (prepareCache.has(key)) {
@@ -43,7 +43,7 @@ export function calculateTextGeometry(
     lineCount: estimatedLines
   }
   
-  if (!process.client) {
+  if (!import.meta.client) {
     return fallback
   }
   

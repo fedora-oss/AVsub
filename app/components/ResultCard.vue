@@ -277,9 +277,9 @@ const closeLightbox = () => {
     <div class="relative aspect-[16/9] overflow-hidden bg-black/40 border-b border-white/[0.04]">
       <!-- Shimmer Skeleton while loading metadata -->
       <div v-if="metaLoading" class="absolute inset-0 flex items-center justify-center bg-slate-950/80">
-        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent animate-shimmer" style="background-size: 200% 100%;"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent animate-shimmer" style="background-size: 200% 100%;"/>
         <div class="relative z-10 flex items-center gap-2 text-violet-400 text-xs font-semibold tracking-wider">
-          <span class="w-2.5 h-2.5 rounded-full bg-violet-400 animate-pulse shadow-[0_0_8px_#a78bfa]"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-violet-400 animate-pulse shadow-[0_0_8px_#a78bfa]"/>
           Scraping Metadata...
         </div>
       </div>
@@ -290,13 +290,13 @@ const closeLightbox = () => {
         :src="displayImage" 
         :alt="displayTitle" 
         class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 select-none" 
-        @error="handleImageError"
         style="-webkit-user-drag: none;"
-      />
+        @error="handleImageError"
+      >
 
       <!-- Cover Fallback placeholder -->
       <div v-else class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/50">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(167,139,250,0.12),transparent_70%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(167,139,250,0.12),transparent_70%)]"/>
         <span class="text-3xl filter drop-shadow-[0_0_10px_rgba(167,139,250,0.4)] animate-bounce duration-1000">📝</span>
         <span class="text-[10px] font-bold text-slate-400 tracking-widest mt-2 uppercase">AV SUBTITLE</span>
       </div>
@@ -321,8 +321,8 @@ const closeLightbox = () => {
 
       <!-- Metadata pill strip -->
       <div v-if="metaLoading" class="flex gap-2 mb-3">
-        <div class="h-5 w-20 bg-slate-800 animate-pulse rounded-md"></div>
-        <div class="h-5 w-14 bg-slate-800 animate-pulse rounded-md"></div>
+        <div class="h-5 w-20 bg-slate-800 animate-pulse rounded-md"/>
+        <div class="h-5 w-14 bg-slate-800 animate-pulse rounded-md"/>
       </div>
       <div v-else-if="jav" class="flex flex-wrap gap-2 mb-3">
         <span v-if="jav.studio" class="px-2 py-0.5 rounded-md bg-violet-500/10 text-violet-300 border border-violet-500/20 text-[10.5px] font-medium max-w-[140px] truncate" :title="jav.studio">
@@ -355,7 +355,7 @@ const closeLightbox = () => {
       <div v-if="jav?.screenshots?.length" class="mb-4">
         <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
           <span>📷 Widescreen Media Gallery</span>
-          <span class="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse"/>
         </h4>
         
         <div class="scrollbar-hide flex overflow-x-auto gap-2.5 snap-x snap-mandatory rounded-2xl py-1 scroll-smooth">
@@ -370,7 +370,7 @@ const closeLightbox = () => {
               class="w-full h-full object-cover antialiased transition-all duration-500 group-hover/img:brightness-110" 
               loading="lazy" 
               alt="Screenshot Thumbnail"
-            />
+            >
             <div class="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white/90 drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m4-3H6" />
@@ -385,8 +385,8 @@ const closeLightbox = () => {
         <!-- TRẠNG THÁI 1: ĐÃ CÓ CẢ VIDEO & SUB CỤC BỘ (CHỈ HIỂN THỊ NÚT XEM PHIM) -->
         <template v-if="jav?.hasLocalVideo && jav?.hasSubtitle">
           <button 
-            @click="watchMovie" 
-            class="relative w-full h-[44px] rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 overflow-hidden transition-all duration-300 select-none active:scale-95 border bg-emerald-500 text-slate-950 border-emerald-400 hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] shadow-lg"
+            class="relative w-full h-[44px] rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 overflow-hidden transition-all duration-300 select-none active:scale-95 border bg-emerald-500 text-slate-950 border-emerald-400 hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] shadow-lg" 
+            @click="watchMovie"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
@@ -399,8 +399,8 @@ const closeLightbox = () => {
         <template v-else-if="jav?.hasLocalVideo">
           <div class="flex gap-2 w-full">
             <button 
-              @click="watchMovie" 
-              class="relative flex-1 h-[40px] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 overflow-hidden transition-all duration-300 select-none active:scale-95 border bg-violet-600/20 text-violet-300 border-violet-500/35 hover:bg-violet-600/35"
+              class="relative flex-1 h-[40px] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 overflow-hidden transition-all duration-300 select-none active:scale-95 border bg-violet-600/20 text-violet-300 border-violet-500/35 hover:bg-violet-600/35" 
+              @click="watchMovie"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
@@ -408,22 +408,21 @@ const closeLightbox = () => {
               <span>Play</span>
             </button>
             <button 
-              @click="handleApply" 
-              class="relative flex-1 h-[40px] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 overflow-hidden transition-all duration-300 select-none active:scale-95 border bg-amber-500/10 text-amber-400 border-amber-500/25 hover:bg-amber-500/20"
+              class="relative flex-1 h-[40px] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 overflow-hidden transition-all duration-300 select-none active:scale-95 border bg-amber-500/10 text-amber-400 border-amber-500/25 hover:bg-amber-500/20" 
               :disabled="status === 'loading'"
+              @click="handleApply"
             >
-              <span v-if="status === 'loading'" class="spinner-mini"></span>
-              <span v-else>⚡ Tải Phụ Đề</span>
+              <span v-if="status === 'loading'" class="spinner-mini"/>
+              <span v-else><i class="fa-solid fa-download mr-1.5"></i> Tải Phụ Đề</span>
             </button>
           </div>
         </template>
 
         <!-- TRẠNG THÁI 3: CHƯA CÓ PHIM CỤC BỘ (HIỂN THỊ NÚT TẢI VỀ QBIT) -->
         <template v-else>
-          <div class="flex gap-2 w-full" v-if="result.magnet">
+          <div v-if="result.magnet" class="flex gap-2 w-full">
             <button 
-              @click="downloadViaQbit" 
-              class="relative flex-1 h-[40px] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 overflow-hidden transition-all duration-300 select-none active:scale-95 border"
+              class="relative flex-1 h-[40px] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 overflow-hidden transition-all duration-300 select-none active:scale-95 border" 
               :class="{
                 'bg-sky-500/10 text-sky-400 border-sky-500/25 hover:bg-sky-500/20 active:bg-sky-500/30': qbitStatus === 'idle',
                 'bg-slate-900/60 text-sky-400 border-sky-500/10 cursor-wait': qbitStatus === 'loading',
@@ -431,8 +430,9 @@ const closeLightbox = () => {
                 'bg-rose-500/20 text-rose-400 border-rose-500/30': qbitStatus === 'error'
               }"
               :disabled="qbitStatus === 'loading'"
+              @click="downloadViaQbit"
             >
-              <span v-if="qbitStatus === 'loading'" class="absolute inset-0 bg-sky-500/5 animate-pulse"></span>
+              <span v-if="qbitStatus === 'loading'" class="absolute inset-0 bg-sky-500/5 animate-pulse"/>
 
               <template v-if="qbitStatus === 'idle'">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -443,8 +443,8 @@ const closeLightbox = () => {
               
               <template v-else-if="qbitStatus === 'loading'">
                 <span class="relative flex h-4 w-4">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-4 w-4 border-2 border-sky-400 border-t-transparent animate-spin"></span>
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"/>
+                  <span class="relative inline-flex rounded-full h-4 w-4 border-2 border-sky-400 border-t-transparent animate-spin"/>
                 </span>
                 <span class="tracking-wide animate-pulse">Adding...</span>
               </template>
@@ -470,8 +470,8 @@ const closeLightbox = () => {
       <!-- Completion Alert banner inside card body -->
       <div 
         v-if="status === 'success'" 
-        @click="showModal = true" 
-        class="mt-3 cursor-pointer p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col gap-0.5 hover:bg-emerald-500/15 active:bg-emerald-500/20 transition-all duration-300"
+        class="mt-3 cursor-pointer p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col gap-0.5 hover:bg-emerald-500/15 active:bg-emerald-500/20 transition-all duration-300" 
+        @click="showModal = true"
       >
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
@@ -508,8 +508,8 @@ const closeLightbox = () => {
           
           <!-- Close button -->
           <button 
-            @click="closeLightbox" 
-            class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all active:scale-90"
+            class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all active:scale-90" 
+            @click="closeLightbox"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -522,9 +522,9 @@ const closeLightbox = () => {
           <img 
             :src="activeScreenshot" 
             class="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-3xl border border-white/5 animate-lightbox-zoom antialiased select-none"
-            @click.stop
             style="-webkit-user-drag: none;"
-          />
+            @click.stop
+          >
         </div>
 
         <!-- Lightbox footer prompt -->
@@ -539,13 +539,13 @@ const closeLightbox = () => {
   <Transition name="modal-fade">
     <div v-if="showModal" class="fixed inset-0 z-[999] flex items-center justify-center p-4" @click.self="showModal = false">
       <!-- Backing glass tint blur -->
-      <div class="absolute inset-0 bg-black/60 backdrop-blur-xl transition-all duration-300"></div>
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-xl transition-all duration-300"/>
 
       <!-- Modal container -->
       <div class="relative w-full max-w-lg bg-slate-900/80 border border-white/10 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-2xl p-6 md:p-8 animate-modal-slide">
         
         <!-- Close button -->
-        <button @click="showModal = false" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 text-slate-400 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all">
+        <button class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 text-slate-400 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all" @click="showModal = false">
           &times;
         </button>
 
@@ -569,14 +569,14 @@ const closeLightbox = () => {
             :src="displayImage" 
             class="w-20 aspect-[16/10] object-cover rounded-lg border border-white/10 flex-shrink-0"
             alt="Cover Image"
-          />
+          >
           <div class="flex-1 flex flex-col gap-1 min-w-0">
             <h3 class="text-xs font-bold text-white leading-snug truncate">{{ jav.title }}</h3>
             <p v-if="jav.studio" class="text-[10px] text-slate-400 flex items-center gap-1">
-              🏢 <span class="truncate">{{ jav.studio }}</span>
+              <i class="fa-regular fa-building text-slate-500 mr-1"></i> <span class="truncate">{{ jav.studio }}</span>
             </p>
             <p v-if="jav.actresses?.length" class="text-[10px] text-slate-400 flex items-center gap-1">
-              👤 <span class="truncate">{{ jav.actresses.slice(0, 3).join(', ') }}</span>
+              <i class="fa-regular fa-user text-slate-500 mr-1"></i> <span class="truncate">{{ jav.actresses.slice(0, 3).join(', ') }}</span>
             </p>
           </div>
         </div>
@@ -585,11 +585,10 @@ const closeLightbox = () => {
           <!-- Movie Magnet Panel -->
           <div v-if="result.magnet" class="bg-white/[0.02] border border-white/[0.04] p-4 rounded-2xl flex flex-col gap-2">
             <div class="flex justify-between items-center">
-              <span class="text-xs font-bold text-slate-300">🧲 Magnet URI</span>
+              <span class="text-xs font-bold text-slate-300 flex items-center gap-1"><i class="fa-solid fa-magnet text-rose-450 mr-1"></i> Magnet URI</span>
               <div class="flex gap-2">
                 <button 
-                  @click="downloadViaQbit" 
-                  class="h-7 px-3 rounded-lg text-[10px] font-bold border transition-all duration-300"
+                  class="h-7 px-3 rounded-lg text-[10px] font-bold border transition-all duration-300" 
                   :class="{
                     'bg-sky-500/10 text-sky-400 border-sky-500/20 hover:bg-sky-500/20': qbitStatus === 'idle',
                     'bg-slate-950/40 text-sky-300 border-white/5 cursor-wait': qbitStatus === 'loading',
@@ -597,12 +596,13 @@ const closeLightbox = () => {
                     'bg-rose-500/20 text-rose-400 border-rose-500/30': qbitStatus === 'error'
                   }"
                   :disabled="qbitStatus === 'loading'"
+                  @click="downloadViaQbit"
                 >
                   {{ qbitStatus === 'idle' ? 'qBit Add' : qbitStatus === 'loading' ? 'Adding...' : qbitStatus === 'success' ? 'Added ✓' : 'Error' }}
                 </button>
                 <button 
-                  @click="copyText(result.magnet)" 
-                  class="h-7 px-3 rounded-lg text-[10px] font-bold bg-violet-600/20 text-violet-300 border border-violet-500/30 hover:bg-violet-600 hover:text-white transition-all"
+                  class="h-7 px-3 rounded-lg text-[10px] font-bold bg-violet-600/20 text-violet-300 border border-violet-500/30 hover:bg-violet-600 hover:text-white transition-all" 
+                  @click="copyText(result.magnet)"
                 >
                   {{ copyMagnetText }}
                 </button>
@@ -614,17 +614,17 @@ const closeLightbox = () => {
           <!-- Subtitle Files list -->
           <div class="bg-white/[0.02] border border-white/[0.04] p-4 rounded-2xl flex flex-col gap-2">
             <div class="flex justify-between items-center">
-              <span class="text-xs font-bold text-slate-300">📝 Applied Subtitle Files</span>
+              <span class="text-xs font-bold text-slate-300 flex items-center gap-1"><i class="fa-regular fa-file-lines text-sky-400 mr-1"></i> Applied Subtitle Files</span>
               <button 
-                @click="copyText(result.detail_link)" 
-                class="h-7 px-3 rounded-lg text-[10px] font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all"
+                class="h-7 px-3 rounded-lg text-[10px] font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all" 
+                @click="copyText(result.detail_link)"
               >
                 {{ copySubText }}
               </button>
             </div>
             <div class="text-[10px] text-slate-400 flex flex-col gap-1 mt-1">
               <div v-for="file in movedFiles" :key="file" class="flex items-center gap-1 text-slate-300 truncate">
-                <span>💾</span> <span class="truncate">{{ file }}</span>
+                <i class="fa-regular fa-floppy-disk text-slate-500 mr-1"></i> <span class="truncate">{{ file }}</span>
               </div>
               <div class="pt-2 border-t border-white/5 text-[9.5px] mt-1 text-slate-500">
                 <strong>Source:</strong> 
@@ -636,7 +636,7 @@ const closeLightbox = () => {
 
         <!-- Done button -->
         <div class="mt-6 flex justify-end">
-          <button @click="showModal = false" class="h-9 px-6 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs hover:bg-emerald-400 active:scale-98 transition-all duration-200">
+          <button class="h-9 px-6 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs hover:bg-emerald-400 active:scale-98 transition-all duration-200" @click="showModal = false">
             Dismiss
           </button>
         </div>
@@ -666,12 +666,12 @@ const closeLightbox = () => {
             <!-- Programmatic Picture-in-Picture Button -->
             <button 
               v-if="isPiPSupported"
-              @click="togglePiP" 
-              :disabled="!isMetadataLoaded"
+              :disabled="!isMetadataLoaded" 
               class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-violet-500/20 hover:text-violet-400 hover:border-violet-500/30 transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed"
               :title="isMetadataLoaded ? 'Xem Picture in Picture' : 'Đang tải video...'"
+              @click="togglePiP"
             >
-              <span v-if="!isMetadataLoaded" class="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin"></span>
+              <span v-if="!isMetadataLoaded" class="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin"/>
               <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v7a1 1 0 01-1 1h-5l-4 4v-4H5a1 1 0 01-1-1V5z" />
                 <rect x="13" y="11" width="7" height="5" rx="1" fill="currentColor" class="text-violet-400" />
@@ -680,8 +680,8 @@ const closeLightbox = () => {
   
             <!-- Close Button -->
             <button 
-              @click="stopWatching" 
-              class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30 transition-all active:scale-90"
+              class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30 transition-all active:scale-90" 
+              @click="stopWatching"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -701,8 +701,8 @@ const closeLightbox = () => {
               autoplay 
               :playsinline="true"
               :webkit-playsinline="true"
-              @loadedmetadata="isMetadataLoaded = true"
               class="w-full h-full object-contain z-10"
+              @loadedmetadata="isMetadataLoaded = true"
             >
               <track 
                 kind="subtitles" 
@@ -710,7 +710,7 @@ const closeLightbox = () => {
                 srclang="ja" 
                 label="Tiếng Nhật" 
                 default
-              />
+              >
             </video>
           </div>
         </div>

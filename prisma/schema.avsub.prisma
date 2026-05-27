@@ -1,8 +1,8 @@
 // AVsub application database — writable, managed by Prisma migrations
-// This is the app's OWN database (avsub.db), separate from javinizer.db (read-only).
+// This is the app's OWN database (avsub), separate from javinizer (read-only).
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

@@ -6,14 +6,16 @@ import { getMovieFolders, resolveTargetMoviePath } from '../utils/movies'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { DownloadResponse } from '~/types'
+import type { DownloadResponse } from '~/types'
 
 /** Extract normalized JAV code (e.g. "IPX-535") from any string */
 function extractJavCode(str: string): string | null {
-  const match = str.match(/\b([A-Za-z]{2,8})-?(\d{2,6})\b/)
+  const cleaned = str.replace(/hhd-?800/gi, '')
+  const match = cleaned.match(/\b([A-Za-z]{2,8})-?(\d{2,6})\b/)
   if (!match?.[1] || !match?.[2]) return null
   return `${match[1].toUpperCase()}-${match[2]}`
 }
+
 
 // Cache the blocker to avoid re-fetching lists on every request
 let blocker: PlaywrightBlocker | null = null

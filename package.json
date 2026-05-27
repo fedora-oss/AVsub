@@ -4,30 +4,48 @@
   "private": true,
   "scripts": {
     "build": "prisma generate && nuxt build",
+    "build:docker": "prisma generate && nuxt build && docker compose up -d avsub --build",
     "dev": "prisma generate && nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.7",
     "@ghostery/adblocker-playwright": "^2.15.0",
+    "@prisma/client": "5.22.0",
     "adm-zip": "^0.5.17",
     "cheerio": "^1.2.0",
     "chokidar": "^3.6.0",
     "nuxt": "^4.4.4",
     "playwright": "^1.59.1",
+    "prisma": "5.22.0",
     "torrent-stream": "^1.2.1",
     "vue": "^3.5.33",
-    "vue-router": "^5.0.6",
-    "@prisma/client": "5.22.0",
-    "prisma": "5.22.0"
+    "vue-router": "^5.0.6"
   },
   "devDependencies": {
+    "@nuxt/eslint": "^1.15.2",
     "@nuxtjs/tailwindcss": "^6.14.0",
-    "@types/node": "^25.9.0"
+    "@types/node": "^25.9.0",
+    "eslint": "^9.15.0",
+    "typescript": "^6.0.3"
   },
   "pnpm": {
+    "overrides": {
+      "@typescript-eslint/eslint-plugin": "8.55.0",
+      "@typescript-eslint/parser": "8.55.0",
+      "@typescript-eslint/project-service": "8.55.0",
+      "@typescript-eslint/scope-manager": "8.55.0",
+      "@typescript-eslint/tsconfig-utils": "8.55.0",
+      "@typescript-eslint/type-utils": "8.55.0",
+      "@typescript-eslint/types": "8.55.0",
+      "@typescript-eslint/typescript-estree": "8.55.0",
+      "@typescript-eslint/utils": "8.55.0",
+      "@typescript-eslint/visitor-keys": "8.55.0"
+    },
     "onlyBuiltDependencies": [
       "@prisma/client",
       "@prisma/engines",

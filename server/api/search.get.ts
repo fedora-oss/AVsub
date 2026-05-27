@@ -1,6 +1,6 @@
 import { defineEventHandler, getQuery, createError } from 'h3'
 import * as cheerio from 'cheerio'
-import { SearchResult } from '~/types'
+import type { SearchResult } from '~/types'
 import { extractJavCode } from '../utils/javinizer-scrape'
 
 export default defineEventHandler(async (event) => {

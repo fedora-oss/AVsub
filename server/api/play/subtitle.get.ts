@@ -44,7 +44,7 @@ export default defineEventHandler((event) => {
   if (!srtFile) {
     throw createError({
       statusCode: 404,
-      statusMessage: `No subtitle file found in folder: ${targetFolder}`,
+      statusMessage: `No subtitle file found in folder: ${targetPath}`,
     })
   }
 
