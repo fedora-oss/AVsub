@@ -292,21 +292,26 @@ const toggleFullscreen = () => {
   const video = videoPlayerRef.value
   if (!container) return
 
-  // iOS Safari ONLY supports webkitEnterFullscreen() on the <video> element directly.
-  // requestFullscreen() on a <div> is silently ignored on iOS.
+  // iOS Safari: webkitEnterFullscreen() triggers the NATIVE iOS player UI which
+  // hides all custom overlays (subtitles, controls, color settings, etc.).
+  // Instead we use CSS fullscreen: overlay a fixed inset-0 div over the entire
+  // viewport while keeping `playsinline`, so ALL custom UI stays visible.
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
+  if (isIOS) {
+    // Pure CSS toggle — no native fullscreen API needed
+    isPlayerFullscreen.value = !isPlayerFullscreen.value
+    return
+  }
+
+  // Desktop: use standard Fullscreen API
   const isCurrentlyFullscreen =
     !!document.fullscreenElement ||
-    !!(document as any).webkitFullscreenElement ||
-    (video ? !!(video as any).webkitDisplayingFullscreen : false)
+    !!(document as any).webkitFullscreenElement
 
   if (!isCurrentlyFullscreen) {
-    if (isIOS && video && typeof (video as any).webkitEnterFullscreen === 'function') {
-      ;(video as any).webkitEnterFullscreen()
-      isPlayerFullscreen.value = true
-    } else if (container.requestFullscreen) {
+    if (container.requestFullscreen) {
       container.requestFullscreen().catch(() => {})
       isPlayerFullscreen.value = true
     } else if ((container as any).webkitRequestFullscreen) {
@@ -314,10 +319,7 @@ const toggleFullscreen = () => {
       isPlayerFullscreen.value = true
     }
   } else {
-    if (isIOS && video && typeof (video as any).webkitExitFullscreen === 'function') {
-      ;(video as any).webkitExitFullscreen()
-      isPlayerFullscreen.value = false
-    } else if (document.exitFullscreen) {
+    if (document.exitFullscreen) {
       document.exitFullscreen().catch(() => {})
       isPlayerFullscreen.value = false
     } else if ((document as any).webkitExitFullscreen) {
@@ -1053,10 +1055,14 @@ const formatVideoTime = (secs: number) => {
           <!-- Video Player Container with Custom Controls -->
           <div 
             ref="playerContainerRef" 
-            class="relative aspect-video rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center group transition-all duration-300 w-full"
-            :class="isMiniPlayer 
-              ? 'h-full rounded-none border-none shadow-none pointer-events-auto' 
-              : 'max-w-5xl shadow-[0_0_80px_rgba(139,92,246,0.35)] border border-violet-500/20 pointer-events-auto'"
+            class="relative overflow-hidden bg-slate-950 flex items-center justify-center group transition-all duration-300 w-full"
+            :class="[
+              isMiniPlayer
+                ? 'h-full rounded-none border-none shadow-none pointer-events-auto aspect-video'
+                : isPlayerFullscreen
+                  ? 'fixed inset-0 z-[99999] rounded-none border-none'
+                  : 'aspect-video rounded-2xl max-w-5xl shadow-[0_0_80px_rgba(139,92,246,0.35)] border border-violet-500/20 pointer-events-auto'
+            ]"
             @click="handleVideoClick"
             @mousemove="triggerControlsActivity"
             @mouseleave="hideControlsOnLeave"
