@@ -289,41 +289,91 @@ const onVolumeInput = (e: Event) => {
 
 const toggleFullscreen = () => {
   const container = playerContainerRef.value
+  const video = videoPlayerRef.value
   if (!container) return
-  
-  if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
-    if (container.requestFullscreen) {
+
+  // iOS Safari ONLY supports webkitEnterFullscreen() on the <video> element directly.
+  // requestFullscreen() on a <div> is silently ignored on iOS.
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+
+  const isCurrentlyFullscreen =
+    !!document.fullscreenElement ||
+    !!(document as any).webkitFullscreenElement ||
+    (video ? !!(video as any).webkitDisplayingFullscreen : false)
+
+  if (!isCurrentlyFullscreen) {
+    if (isIOS && video && typeof (video as any).webkitEnterFullscreen === 'function') {
+      ;(video as any).webkitEnterFullscreen()
+      isPlayerFullscreen.value = true
+    } else if (container.requestFullscreen) {
       container.requestFullscreen().catch(() => {})
+      isPlayerFullscreen.value = true
     } else if ((container as any).webkitRequestFullscreen) {
-      (container as any).webkitRequestFullscreen()
+      ;(container as any).webkitRequestFullscreen()
+      isPlayerFullscreen.value = true
     }
-    isPlayerFullscreen.value = true
   } else {
-    if (document.exitFullscreen) {
+    if (isIOS && video && typeof (video as any).webkitExitFullscreen === 'function') {
+      ;(video as any).webkitExitFullscreen()
+      isPlayerFullscreen.value = false
+    } else if (document.exitFullscreen) {
       document.exitFullscreen().catch(() => {})
+      isPlayerFullscreen.value = false
     } else if ((document as any).webkitExitFullscreen) {
-      (document as any).webkitExitFullscreen()
+      ;(document as any).webkitExitFullscreen()
+      isPlayerFullscreen.value = false
     }
-    isPlayerFullscreen.value = false
   }
 }
 
 const togglePiP = () => {
   const video = videoPlayerRef.value
   if (!video) return
-  
+
   try {
-    if (document.pictureInPictureElement) {
-      document.exitPictureInPicture()
-    } else if (video.requestPictureInPicture) {
-      video.requestPictureInPicture()
-    } else if (
-      video.webkitSupportsPresentationMode &&
+    // Already in standard PiP → exit
+    if (document.pictureInPictureElement === video) {
+      document.exitPictureInPicture().catch(() => {})
+      pipActive.value = false
+      return
+    }
+    // Already in Safari WebKit PiP → exit to inline
+    if (
+      video.webkitPresentationMode === 'picture-in-picture' &&
       typeof video.webkitSetPresentationMode === 'function'
     ) {
-      const currentMode = video.webkitPresentationMode
-      const targetMode = currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture'
-      video.webkitSetPresentationMode(targetMode)
+      video.webkitSetPresentationMode('inline')
+      pipActive.value = false
+      return
+    }
+
+    // iOS/Safari: prefer webkitSetPresentationMode
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+
+    if (
+      isIOS &&
+      typeof video.webkitSupportsPresentationMode === 'function' &&
+      video.webkitSupportsPresentationMode('picture-in-picture') &&
+      typeof video.webkitSetPresentationMode === 'function'
+    ) {
+      video.webkitSetPresentationMode('picture-in-picture')
+      pipActive.value = true
+    } else if (video.requestPictureInPicture) {
+      video.requestPictureInPicture()
+        .then(() => { pipActive.value = true })
+        .catch(() => {
+          // fallback to webkit
+          if (
+            typeof video.webkitSupportsPresentationMode === 'function' &&
+            video.webkitSupportsPresentationMode('picture-in-picture') &&
+            typeof video.webkitSetPresentationMode === 'function'
+          ) {
+            video.webkitSetPresentationMode('picture-in-picture')
+            pipActive.value = true
+          }
+        })
     }
   } catch (err) {
     console.error('Lỗi khi kích hoạt Picture-in-Picture:', err)
@@ -1017,8 +1067,9 @@ const formatVideoTime = (secs: number) => {
               ref="videoPlayerRef"
               :src="`/api/play/video?code=${encodeURIComponent(code)}`" 
               autoplay 
-              :playsinline="true"
-              :webkit-playsinline="true"
+              playsinline
+              webkit-playsinline
+              x-webkit-airplay="allow"
               class="w-full h-full object-contain z-10 cursor-none"
               @loadedmetadata="onMetadataLoaded"
               @timeupdate="onTimeUpdate"
@@ -1027,6 +1078,11 @@ const formatVideoTime = (secs: number) => {
               @pause="isPlaying = false"
               @volumechange="onVolumeChange"
               @ended="onVideoEnded"
+              @enterpictureinpicture="syncPiPState"
+              @leavepictureinpicture="syncPiPState"
+              @webkitpresentationmodechanged="syncPiPState"
+              @webkitbeginfullscreen="isPlayerFullscreen = true"
+              @webkitendfullscreen="isPlayerFullscreen = false"
             />
 
             <!-- Always-visible Close Button when video is loading -->
@@ -1385,33 +1441,51 @@ const formatVideoTime = (secs: number) => {
                       <!-- Picture in Picture -->
                       <button 
                         v-if="isPiPSupported"
-                        class="w-8 h-8 rounded-full hover:bg-white/10 text-white flex items-center justify-center transition-all"
-                        title="Picture in Picture (P)"
-                        @click="togglePiP"
+                        class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-all active:scale-90"
+                        :class="pipActive ? 'text-violet-400' : 'text-white'"
+                        :title="pipActive ? 'Thoát PiP (P)' : 'Picture-in-Picture (P)'"
+                        @click.stop="togglePiP"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v7a1 1 0 01-1 1h-5l-4 4v-4H5a1 1 0 01-1-1V5z" />
-                          <rect x="13" y="11" width="7" height="5" rx="1" fill="currentColor" class="text-violet-400" />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="2" y="3" width="20" height="14" rx="2" />
+                          <rect x="12" y="9" width="9" height="7" rx="1" fill="currentColor" stroke="none" />
                         </svg>
                       </button>
 
                       <!-- Mini-Player Button -->
                       <button 
-                        class="w-8 h-8 rounded-full hover:bg-white/10 text-white flex items-center justify-center transition-all"
-                        title="Chế độ thu nhỏ (Mini-Player)"
+                        v-if="!isMiniPlayer"
+                        class="w-8 h-8 rounded-full hover:bg-white/10 text-white flex items-center justify-center transition-all active:scale-90"
+                        title="Chế độ thu nhỏ (I)"
                         @click.stop="isMiniPlayer = true"
                       >
-                        <i class="fa-solid fa-compress text-sm"></i>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+                          <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+                          <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+                          <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                        </svg>
                       </button>
 
                       <!-- Fullscreen -->
                       <button 
-                        class="w-8 h-8 rounded-full hover:bg-white/10 text-white flex items-center justify-center transition-all"
-                        title="Toàn màn hình (F)"
-                        @click="toggleFullscreen"
+                        class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-all active:scale-90"
+                        :class="isPlayerFullscreen ? 'text-violet-400' : 'text-white'"
+                        :title="isPlayerFullscreen ? 'Thoát toàn màn hình (F)' : 'Toàn màn hình (F)'"
+                        @click.stop="toggleFullscreen"
                       >
-                        <i v-if="isPlayerFullscreen" class="fa-solid fa-compress text-sm"></i>
-                        <i v-else class="fa-solid fa-expand text-sm"></i>
+                        <svg v-if="isPlayerFullscreen" xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M8 3v3a2 2 0 0 1-2 2H3"/>
+                          <path d="M21 8h-3a2 2 0 0 1-2-2V3"/>
+                          <path d="M3 16h3a2 2 0 0 1 2 2v3"/>
+                          <path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
+                        </svg>
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+                          <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+                          <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+                          <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                        </svg>
                       </button>
                     </div>
                   </div>
