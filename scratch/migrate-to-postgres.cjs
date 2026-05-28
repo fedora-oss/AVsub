@@ -151,18 +151,10 @@ async function main() {
     const movieActresses = querySQLite('SELECT * FROM movie_actresses');
     console.log(`Loaded ${movieActresses.length} movie_actresses relations from SQLite.`);
     if (movieActresses.length > 0) {
-      const movieIds = new Set(movies.map(m => m.content_id));
-      const actressIds = new Set(actresses.map(a => a.id));
-      
-      const validMovieActresses = movieActresses.filter(ma => {
-        return movieIds.has(ma.movie_content_id) && actressIds.has(ma.actress_id);
-      });
-      console.log(`Filtered out ${movieActresses.length - validMovieActresses.length} orphan movie_actresses relations.`);
-
       const batchSize = 2000;
       let totalMigrated = 0;
-      for (let i = 0; i < validMovieActresses.length; i += batchSize) {
-        const batch = validMovieActresses.slice(i, i + batchSize);
+      for (let i = 0; i < movieActresses.length; i += batchSize) {
+        const batch = movieActresses.slice(i, i + batchSize);
         const result = await prisma.movieActress.createMany({
           data: batch.map(ma => ({
             movie_content_id: ma.movie_content_id,
@@ -180,18 +172,10 @@ async function main() {
     const movieGenres = querySQLite('SELECT * FROM movie_genres');
     console.log(`Loaded ${movieGenres.length} movie_genres relations from SQLite.`);
     if (movieGenres.length > 0) {
-      const movieIds = new Set(movies.map(m => m.content_id));
-      const genreIds = new Set(genres.map(g => g.id));
-      
-      const validMovieGenres = movieGenres.filter(mg => {
-        return movieIds.has(mg.movie_content_id) && genreIds.has(mg.genre_id);
-      });
-      console.log(`Filtered out ${movieGenres.length - validMovieGenres.length} orphan movie_genres relations.`);
-
       const batchSize = 2000;
       let totalMigrated = 0;
-      for (let i = 0; i < validMovieGenres.length; i += batchSize) {
-        const batch = validMovieGenres.slice(i, i + batchSize);
+      for (let i = 0; i < movieGenres.length; i += batchSize) {
+        const batch = movieGenres.slice(i, i + batchSize);
         const result = await prisma.movieGenre.createMany({
           data: batch.map(mg => ({
             movie_content_id: mg.movie_content_id,

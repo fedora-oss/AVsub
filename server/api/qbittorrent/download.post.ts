@@ -28,7 +28,7 @@ async function getBlocker() {
 /** Extract JAV code (e.g. "IPX-535") from magnet or string */
 function extractJavCode(str: string): string | null {
   const cleaned = str.replace(/hhd-?800/gi, '')
-  const match = cleaned.match(/\b([A-Za-z]{2,8})-?(\d{2,6})\b/)
+  const match = cleaned.match(/\b([A-Za-z]{2,8})-?(\d{2,6})(?!\d)/)
   if (!match?.[1] || !match?.[2]) return null
   return `${match[1].toUpperCase()}-${match[2]}`
 }

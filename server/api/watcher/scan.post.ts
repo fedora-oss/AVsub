@@ -20,18 +20,22 @@ async function runBackgroundScan(movieDir: string) {
   const videoFiles: string[] = []
   
   const walk = (dir: string) => {
-    const entries = fs.readdirSync(dir, { withFileTypes: true })
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name)
-      if (entry.isDirectory()) {
-        if (entry.name.startsWith('.') || entry.name.toLowerCase() === 'extracted') continue
-        walk(fullPath)
-      } else if (entry.isFile()) {
-        const ext = path.extname(entry.name).toLowerCase()
-        if (['.mp4', '.mkv', '.avi', '.wmv', '.iso'].includes(ext)) {
-          videoFiles.push(fullPath)
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true })
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name)
+        if (entry.isDirectory()) {
+          if (entry.name.startsWith('.') || entry.name.toLowerCase() === 'extracted') continue
+          walk(fullPath)
+        } else if (entry.isFile()) {
+          const ext = path.extname(entry.name).toLowerCase()
+          if (['.mp4', '.mkv', '.avi', '.wmv', '.iso'].includes(ext)) {
+            videoFiles.push(fullPath)
+          }
         }
       }
+    } catch (walkErr: any) {
+      console.warn(`[Scan] Skip broken subdirectory ${dir} due to error:`, walkErr.message)
     }
   }
   

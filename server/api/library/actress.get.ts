@@ -39,12 +39,16 @@ export default defineEventHandler(async (event) => {
         if (fs.existsSync(movieDir)) {
           const folders = getMovieFolders(movieDir)
           for (const folder of folders) {
-            const files = fs.readdirSync(folder.fullPath)
-            const hasSrt = files.some(f => f.toLowerCase().endsWith('.srt'))
-            
-            const code = extractJavCode(folder.name)
-            if (code) {
-              foldersWithSrt.set(code.toLowerCase(), hasSrt)
+            try {
+              const files = fs.readdirSync(folder.fullPath)
+              const hasSrt = files.some(f => f.toLowerCase().endsWith('.srt'))
+              
+              const code = extractJavCode(folder.name)
+              if (code) {
+                foldersWithSrt.set(code.toLowerCase(), hasSrt)
+              }
+            } catch (folderErr: any) {
+              console.warn(`[API Actress ID] Skip broken folder ${folder.fullPath} due to error:`, folderErr.message)
             }
           }
         }

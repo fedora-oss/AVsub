@@ -31,7 +31,7 @@ const processedFiles = new Set<string>()
 // Helper to extract JAV Code
 export function extractJavCode(str: string): string | null {
   const cleaned = str.replace(/hhd-?800/gi, '')
-  const match = cleaned.match(/\b([A-Za-z]{2,10})-?(\d{2,10})\b/)
+  const match = cleaned.match(/\b([A-Za-z]{2,10})-?(\d{2,10})(?!\d)/)
   if (!match?.[1] || !match?.[2]) return null
   return `${match[1].toUpperCase()}-${match[2]}`
 }
@@ -208,6 +208,11 @@ export async function processMovieFile(filePath: string, source: 'watcher' | 'ma
 }
 
 export default defineNitroPlugin((nitroApp) => {
+  if (process.env.DISABLE_WATCHER === 'true') {
+    console.warn('[Watcher] Watcher is explicitly disabled via DISABLE_WATCHER=true environment variable.')
+    return
+  }
+
   const movieDir = process.env.MOVIE_DIRECTORY || '/movies'
   
   if (!movieDir) {
@@ -235,15 +240,129 @@ export default defineNitroPlugin((nitroApp) => {
   console.log(`[Watcher] Initializing filesystem folder monitoring for path: ${movieDir}`)
   console.log(`[Watcher] Configurations: polling=${isPolling}, interval=${pollInterval}ms, stabilityThreshold=${stabilityThreshold}ms`)
 
-  // Initialize chokidar
-  const watcher = chokidar.watch(movieDir, {
-    ignored: [
+  // Paths confirmed to be broken (I/O errors) — skipped on every watcher restart
+  const brokenPaths = new Set<string>()
+
+  // Track whether a graceful shutdown has been requested
+  let isShuttingDown = false
+
+  // Watch for newly added video files
+  const videoExtensions = ['.mp4', '.mkv', '.avi', '.wmv', '.iso']
+
+  // Active watcher reference (replaced on self-heal restart)
+  let activeWatcher: ReturnType<typeof chokidar.watch> | null = null
+
+  // Debounce timer for watcher restart to batch multiple rapid EIO errors
+  let restartTimer: ReturnType<typeof setTimeout> | null = null
+
+  function buildIgnoredList(): (RegExp | string)[] {
+    const base: (RegExp | string)[] = [
       /(^|[\/\\])\../,            // ignore hidden files (.dotfiles)
       /\.(srt|txt|nfo|jpg|png)$/i, // ignore sub/meta assets to avoid recursive watching triggers
       /extracted/i,               // ignore temp extraction directories
       /node_modules/i,
       /\.git/i
-    ],
+    ]
+    // Add all known broken paths to the ignore list
+    for (const p of brokenPaths) {
+      base.push(p)
+    }
+    return base
+  }
+
+  function attachHandlers(watcher: ReturnType<typeof chokidar.watch>) {
+    watcher
+      .on('add', async (filePath) => {
+        const ext = path.extname(filePath).toLowerCase()
+        if (!videoExtensions.includes(ext)) return
+
+        // Handle duplicate triggers
+        if (processedFiles.has(filePath)) return
+        processedFiles.add(filePath)
+        setTimeout(() => processedFiles.delete(filePath), 60000) // Reset after 1 minute
+
+        console.log(`[Watcher] File added and stabilized: ${filePath}`)
+        await processMovieFile(filePath, 'watcher')
+      })
+      .on('change', async (filePath) => {
+        // In some operating systems or NAS setups, chokidar triggers "change" instead of "add" when files complete downloading
+        const ext = path.extname(filePath).toLowerCase()
+        if (!videoExtensions.includes(ext)) return
+
+        if (processedFiles.has(filePath)) return
+        processedFiles.add(filePath)
+        setTimeout(() => processedFiles.delete(filePath), 60000)
+
+        console.log(`[Watcher] File updated and stabilized: ${filePath}`)
+        await processMovieFile(filePath, 'watcher')
+      })
+      .on('error', (error: any) => {
+        // Extract the offending path from the error (EIO errors carry a `.path` property)
+        const badPath: string | undefined = error?.path
+
+        if (badPath) {
+          if (!brokenPaths.has(badPath)) {
+            brokenPaths.add(badPath)
+            console.warn(`[Watcher] I/O error on path "${badPath}" — adding to skip list. Will restart watcher. Error: ${error.message}`)
+          } else {
+            // Already known bad path, just log quietly
+            console.warn(`[Watcher] Repeated I/O error on already-skipped path "${badPath}". Error: ${error.message}`)
+          }
+        } else {
+          console.error(`[Watcher] Directory watcher encountered an error:`, error)
+        }
+
+        // Debounce restart: collect all rapid EIO errors within 2s before restarting once
+        if (!isShuttingDown) {
+          if (restartTimer) clearTimeout(restartTimer)
+          restartTimer = setTimeout(() => {
+            restartTimer = null
+            scheduleRestart()
+          }, 2000)
+        }
+      })
+      .on('ready', () => {
+        const skipped = brokenPaths.size > 0 ? ` (skipping ${brokenPaths.size} broken path(s))` : ''
+        console.log(`[Watcher] Directory watcher is active and ready to catch new file events 24/7.${skipped}`)
+      })
+  }
+
+  async function scheduleRestart() {
+    if (isShuttingDown) return
+
+    console.log(`[Watcher] Restarting watcher, skipping ${brokenPaths.size} broken path(s)...`)
+
+    // Close the old watcher safely
+    if (activeWatcher) {
+      try {
+        await activeWatcher.close()
+      } catch (e: any) {
+        console.warn('[Watcher] Error closing old watcher during restart:', e.message)
+      }
+      activeWatcher = null
+    }
+
+    // Start a fresh watcher with the updated ignore list
+    const newWatcher = chokidar.watch(movieDir, {
+      ignored: buildIgnoredList(),
+      persistent: true,
+      ignoreInitial: true,
+      usePolling: isPolling,
+      interval: pollInterval,
+      binaryInterval: pollInterval,
+      awaitWriteFinish: {
+        stabilityThreshold,
+        pollInterval: 1000
+      }
+    })
+
+    activeWatcher = newWatcher
+    attachHandlers(newWatcher)
+  }
+
+  // Initialize chokidar
+  const initialWatcher = chokidar.watch(movieDir, {
+    ignored: buildIgnoredList(),
     persistent: true,
     ignoreInitial: true,          // do not scan existing files on boot (covered by Manual Bulk Scan)
     usePolling: isPolling,
@@ -255,45 +374,17 @@ export default defineNitroPlugin((nitroApp) => {
     }
   })
 
-  // Watch for newly added video files
-  const videoExtensions = ['.mp4', '.mkv', '.avi', '.wmv', '.iso']
-
-  watcher
-    .on('add', async (filePath) => {
-      const ext = path.extname(filePath).toLowerCase()
-      if (!videoExtensions.includes(ext)) return
-
-      // Handle duplicate triggers
-      if (processedFiles.has(filePath)) return
-      processedFiles.add(filePath)
-      setTimeout(() => processedFiles.delete(filePath), 60000) // Reset after 1 minute
-
-      console.log(`[Watcher] File added and stabilized: ${filePath}`)
-      await processMovieFile(filePath, 'watcher')
-    })
-    .on('change', async (filePath) => {
-      // In some operating systems or NAS setups, chokidar triggers "change" instead of "add" when files complete downloading
-      const ext = path.extname(filePath).toLowerCase()
-      if (!videoExtensions.includes(ext)) return
-
-      if (processedFiles.has(filePath)) return
-      processedFiles.add(filePath)
-      setTimeout(() => processedFiles.delete(filePath), 60000)
-
-      console.log(`[Watcher] File updated and stabilized: ${filePath}`)
-      await processMovieFile(filePath, 'watcher')
-    })
-    .on('error', (error) => {
-      console.error(`[Watcher] Directory watcher encountered an error:`, error)
-    })
-    .on('ready', () => {
-      console.log('[Watcher] Directory watcher is active and ready to catch new file events 24/7.')
-    })
+  activeWatcher = initialWatcher
+  attachHandlers(initialWatcher)
 
   // Export watcher reference to be able to close it on shutdown
   nitroApp.hooks.hook('close', async () => {
     console.log('[Watcher] Closing folder watcher...')
+    isShuttingDown = true
     watcherState.active = false
-    await watcher.close()
+    if (restartTimer) clearTimeout(restartTimer)
+    if (activeWatcher) {
+      await activeWatcher.close()
+    }
   })
 })

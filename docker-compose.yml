@@ -31,11 +31,10 @@ services:
       - WATCHER_POLLING=${WATCHER_POLLING:-true}
       - WATCHER_POLL_INTERVAL=${WATCHER_POLL_INTERVAL:-5000}
       - WATCHER_STABILITY_THRESHOLD=${WATCHER_STABILITY_THRESHOLD:-10000}
+      - DISABLE_WATCHER=${DISABLE_WATCHER:-false}
     depends_on:
       javinizer:
         condition: service_healthy
-      postgresql:
-        condition: service_started
 
   # 🎭 Javinizer - JAV Metadata Scraper & File Organizer Engine
   javinizer:
@@ -63,32 +62,18 @@ services:
       retries: 3
       start_period: 10s
 
-  # 🐘 PostgreSQL - High-performance Relational Database for Javinizer Library
-  postgresql:
-    image: postgres:15-alpine
-    container_name: postgresql
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: javinizer
-      POSTGRES_USER: javinizer
-      POSTGRES_PASSWORD: javinizer_password
-    volumes:
-      - ${POSTGRES_DATA_PATH:-/srv/nas_share/Database/postgres}:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
-
-  watchtower:
-    image: containrrr/watchtower:latest
-    container_name: watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - WATCHTOWER_POLL_INTERVAL=300
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_LABEL_ENABLE=false
-    # Only monitor and update the 'avsub' container to prevent disruptions elsewhere
-    command: --interval 300 avsub
+  # watchtower:
+  #   image: containrrr/watchtower:latest
+  #   container_name: watchtower
+  #   restart: unless-stopped
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   environment:
+  #     - WATCHTOWER_POLL_INTERVAL=300
+  #     - WATCHTOWER_CLEANUP=true
+  #     - WATCHTOWER_LABEL_ENABLE=false
+  #   # Only monitor and update the 'avsub' container to prevent disruptions elsewhere
+  #   command: --interval 300 avsub
 
 # networks:
 #   traefik-network:

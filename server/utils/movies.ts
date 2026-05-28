@@ -69,7 +69,7 @@ export function getMovieFolders(movieDir: string): MovieFolder[] {
         // and completely avoids I/O errors or hangs on slow/broken network drives.
         const hasJavCode = !!extractJavCode(entry.name)
 
-        if (hasJavCode || hasDirectVideoFile(subPath)) {
+        if (hasJavCode || (depth > 0 && hasDirectVideoFile(subPath))) {
           folders.push({
             name: entry.name,
             fullPath: subPath,

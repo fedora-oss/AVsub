@@ -35,13 +35,17 @@ export default defineEventHandler(async (event) => {
     if (fs.existsSync(movieDir)) {
       const folders = getMovieFolders(movieDir)
       for (const folder of folders) {
-        const files = fs.readdirSync(folder.fullPath)
-        const hasSrt = files.some(f => f.toLowerCase().endsWith('.srt'))
-        const hasVideo = files.some(f => /\.(mp4|mkv|avi|wmv|mov)$/i.test(f))
-        
-        const code = extractJavCode(folder.name)
-        if (code) {
-          localMoviesState.set(code.toLowerCase(), { hasSrt, hasVideo })
+        try {
+          const files = fs.readdirSync(folder.fullPath)
+          const hasSrt = files.some(f => f.toLowerCase().endsWith('.srt'))
+          const hasVideo = files.some(f => /\.(mp4|mkv|avi|wmv|mov)$/i.test(f))
+          
+          const code = extractJavCode(folder.name)
+          if (code) {
+            localMoviesState.set(code.toLowerCase(), { hasSrt, hasVideo })
+          }
+        } catch (folderErr: any) {
+          console.warn(`[API Movies] Skip broken folder ${folder.fullPath} due to error:`, folderErr.message)
         }
       }
     }

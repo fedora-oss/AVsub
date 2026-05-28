@@ -52,7 +52,7 @@ const DEFAULT_SCRAPERS = [
  */
 export function extractJavCode(keyword: string): string | null {
   const cleaned = keyword.replace(/hhd-?800/gi, '')
-  const match = cleaned.trim().match(/\b([A-Za-z]{2,8})-?(\d{2,6})\b/)
+  const match = cleaned.trim().match(/\b([A-Za-z]{2,8})-?(\d{2,6})(?!\d)/)
   if (!match) return null
   const label = (match[1] ?? '').toUpperCase()
   const num = match[2] ?? ''

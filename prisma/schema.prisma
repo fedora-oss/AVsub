@@ -3,7 +3,7 @@
 // Use prisma db pull / introspection only.
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("JAVINIZER_DATABASE_URL")
 }
 

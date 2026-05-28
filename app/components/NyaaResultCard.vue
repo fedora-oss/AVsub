@@ -16,121 +16,24 @@ const loadingCover = ref(true)
 const dropdownRef = ref<HTMLElement | null>(null)
 const showDropdown = ref(false)
 
-const isWatching = ref(false)
-const videoPlayerRef = ref<HTMLVideoElement | null>(null)
-const isMetadataLoaded = ref(false)
-
-const isPiPSupported = computed(() => {
-  if (typeof document === 'undefined' || typeof navigator === 'undefined') return false
-  return !!(
-    document.pictureInPictureEnabled ||
-    /iphone|ipad|ipod|safari/i.test(navigator.userAgent)
-  )
+const javCode = computed(() => {
+  const code = props.result.code || (() => {
+    const match = props.result.title.match(/\b([A-Za-z]{2,8})-?(\d{2,6})\b/)
+    if (!match || !match[1] || !match[2]) return null
+    return `${match[1].toUpperCase()}-${match[2]}`
+  })()
+  return code
 })
-
-const togglePiP = () => {
-  const video = videoPlayerRef.value
-  if (!video) return
-
-  try {
-    if (document.pictureInPictureElement) {
-      document.exitPictureInPicture()
-    } else if (video.requestPictureInPicture) {
-      video.requestPictureInPicture()
-    } else if (
-      video.webkitSupportsPresentationMode &&
-      typeof video.webkitSetPresentationMode === 'function'
-    ) {
-      const currentMode = video.webkitPresentationMode
-      const targetMode = currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture'
-      video.webkitSetPresentationMode(targetMode)
-    } else {
-      if (typeof (video as any).webkitEnterFullscreen === 'function') {
-        (video as any).webkitEnterFullscreen()
-      } else {
-        alert('Trình duyệt của bạn không hỗ trợ Picture-in-Picture trên thiết bị này.')
-      }
-    }
-  } catch (err) {
-    console.error('Lỗi khi kích hoạt Picture-in-Picture:', err)
-    try {
-      if (video.webkitSetPresentationMode) {
-        video.webkitSetPresentationMode('picture-in-picture')
-      }
-    } catch (e2) {
-      console.error('Cố gắng kích hoạt WebKit PiP thất bại:', e2)
-    }
-  }
-}
 
 const watchMovie = () => {
-  if (!props.result.magnet && !props.result.torrentUrl) return
-  isWatching.value = true
+  if (!javCode.value) return
+  navigateTo(`/movie/${javCode.value}?play=true`)
 }
 
-const stopWatching = async () => {
-  isWatching.value = false
-  isMetadataLoaded.value = false
-  if (props.result.magnet) {
-    try {
-      await $fetch('/api/stream-stop', {
-        method: 'POST',
-        body: { magnet: props.result.magnet }
-      })
-    } catch (err) {
-      console.warn('Failed to stop stream cleanly:', err)
-    }
-  }
+const viewDetails = () => {
+  if (!javCode.value) return
+  navigateTo(`/movie/${javCode.value}`)
 }
-
-watch(isWatching, async (newVal, oldVal, onCleanup) => {
-  if (newVal) {
-    await nextTick()
-    const video = videoPlayerRef.value
-    if (video) {
-      const handleFullscreenChange = () => {
-        if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
-          stopWatching()
-        }
-      }
-      const handleWebkitEndFullscreen = () => {
-        stopWatching()
-      }
-      
-      video.addEventListener('fullscreenchange', handleFullscreenChange)
-      video.addEventListener('webkitendfullscreen', handleWebkitEndFullscreen)
-      
-      onCleanup(() => {
-        video.removeEventListener('fullscreenchange', handleFullscreenChange)
-        video.removeEventListener('webkitendfullscreen', handleWebkitEndFullscreen)
-      })
-
-      // Attempt to play and request fullscreen
-      try {
-        await video.play()
-      } catch (playErr) {
-        console.warn('Auto-play failed, user interaction might be required:', playErr)
-      }
-      
-      try {
-        if (video.requestFullscreen) {
-          await video.requestFullscreen()
-        } else if ((video as any).webkitEnterFullscreen) {
-          ;(video as any).webkitEnterFullscreen()
-        }
-        if (screen.orientation && typeof screen.orientation.lock === 'function') {
-          await screen.orientation.lock('landscape').catch((oErr) => {
-            console.log('Orientation lock ignored:', oErr)
-          })
-        }
-      } catch (err) {
-        console.warn('Fullscreen or orientation lock failed:', err)
-      }
-    }
-  } else {
-    isMetadataLoaded.value = false
-  }
-})
 
 // JAV Rich Metadata State
 const metadata = ref<any>(null)
@@ -175,6 +78,53 @@ const downloadViaQbit = async () => {
     setTimeout(() => {
       qbitStatus.value = 'idle'
     }, 5000)
+  }
+}
+
+// Dedicated Subtitle Download Logic
+const downloadingSub = ref(false)
+const subStatus = ref<'idle' | 'success' | 'error'>('idle')
+const subMessage = ref('')
+
+const downloadSubtitle = async () => {
+  const code = props.result.code || jav.value?.code || javCode.value
+  if (!code) return
+  downloadingSub.value = true
+  subStatus.value = 'idle'
+  subMessage.value = ''
+  try {
+    const res = await $fetch<{ success: boolean; movedFiles?: string[]; error?: string }>('/api/download', {
+      method: 'POST',
+      body: {
+        detail_link: `https://www.avsubtitles.com/subtitles.php?search=${encodeURIComponent(code)}`,
+        keyword: code,
+        code: code
+      }
+    })
+    if (res.success) {
+      subStatus.value = 'success'
+      if (metadata.value) {
+        metadata.value.hasSubtitle = true
+      }
+      subMessage.value = 'Tải phụ đề thành công!'
+      setTimeout(() => {
+        subStatus.value = 'idle'
+      }, 3000)
+    } else {
+      subStatus.value = 'error'
+      subMessage.value = res.error || 'Lỗi không xác định.'
+      setTimeout(() => {
+        subStatus.value = 'idle'
+      }, 5000)
+    }
+  } catch (err: any) {
+    subStatus.value = 'error'
+    subMessage.value = err.data?.statusMessage || 'Không tìm thấy phụ đề.'
+    setTimeout(() => {
+      subStatus.value = 'idle'
+    }, 5000)
+  } finally {
+    downloadingSub.value = false
   }
 }
 
@@ -261,7 +211,7 @@ const closeLightbox = () => {
   <div class="nyaa-card group relative bg-slate-900/40 backdrop-blur-xl border border-white/[0.08] hover:border-violet-500/40 hover:bg-slate-900/60 rounded-3xl transition-all duration-300 flex flex-col overflow-hidden shadow-2xl">
     
     <!-- Card Cover Container -->
-    <div class="relative aspect-[16/9] overflow-hidden bg-black/40 border-b border-white/[0.04]">
+    <div @click="viewDetails" class="relative aspect-[16/9] overflow-hidden bg-black/40 border-b border-white/[0.04] cursor-pointer">
       <div v-if="loadingCover" class="absolute inset-0 flex items-center justify-center bg-slate-950/80">
         <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent animate-shimmer" style="background-size: 200% 100%;"/>
         <div class="relative z-10 flex items-center gap-2 text-violet-400 text-xs font-semibold tracking-wider">
@@ -297,7 +247,7 @@ const closeLightbox = () => {
     <!-- Card Contents -->
     <div class="p-5 flex-1 flex flex-col">
       <!-- Title -->
-      <h3 class="text-[14.5px] font-bold text-slate-100 leading-snug tracking-tight line-clamp-2 h-[2.8em] overflow-hidden antialiased mb-3.5 group-hover:text-violet-400 transition-colors duration-300" :title="result.title">
+      <h3 @click="viewDetails" class="text-[14.5px] font-bold text-slate-100 leading-snug tracking-tight line-clamp-2 h-[2.8em] overflow-hidden antialiased mb-3.5 group-hover:text-violet-400 transition-colors duration-300 cursor-pointer" :title="result.title">
         {{ result.title }}
       </h3>
 
@@ -407,13 +357,25 @@ const closeLightbox = () => {
             </svg>
             <span>Play</span>
           </button>
-          <!-- Tải Sub: Ở NyaaResultCard không có sẵn detailLink trực tiếp từ avsubtitles.com nên khi click sẽ gọi luồng tải qBit (luồng này tự động tải sub!) -->
+          <!-- Tải Sub: Gọi trực tiếp api tải phụ đề sử dụng mã JAV -->
           <button 
-            class="relative flex-1 h-[40px] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 overflow-hidden transition-all duration-300 select-none active:scale-95 border bg-amber-500/10 text-amber-400 border-amber-500/25 hover:bg-amber-500/20" 
-            :disabled="qbitStatus === 'loading'"
-            @click="downloadViaQbit"
+            class="relative flex-1 h-[40px] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 overflow-hidden transition-all duration-300 select-none active:scale-95 border" 
+            :class="{
+              'bg-amber-500/10 text-amber-400 border-amber-500/25 hover:bg-amber-500/20': subStatus === 'idle',
+              'bg-amber-500/25 text-amber-300 border-amber-500/40 cursor-wait': downloadingSub,
+              'bg-emerald-500/20 text-emerald-400 border-emerald-500/30': subStatus === 'success',
+              'bg-rose-500/20 text-rose-400 border-rose-500/30': subStatus === 'error'
+            }"
+            :disabled="downloadingSub"
+            @click="downloadSubtitle"
+            :title="subMessage || 'Tải phụ đề cho phim'"
           >
-            <span v-if="qbitStatus === 'loading'" class="spinner-mini"/>
+            <span v-if="downloadingSub" class="relative flex h-3 w-3 mr-1">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"/>
+              <span class="relative inline-flex rounded-full h-3 w-3 border border-amber-400 border-t-transparent animate-spin"/>
+            </span>
+            <span v-else-if="subStatus === 'success'"><i class="fa-solid fa-check mr-1.5"></i> Đã Tải</span>
+            <span v-else-if="subStatus === 'error'"><i class="fa-solid fa-xmark mr-1.5"></i> Lỗi</span>
             <span v-else><i class="fa-solid fa-download mr-1.5"></i> Tải Phụ Đề</span>
           </button>
         </template>
@@ -588,79 +550,6 @@ const closeLightbox = () => {
       </Transition>
     </Teleport>
 
-    <!-- ── Fullscreen Video Player Modal ─────────────────────────────────────── -->
-    <Teleport to="body">
-      <Transition name="lightbox-fade">
-        <div 
-          v-if="isWatching" 
-          class="fixed inset-0 z-[10000] flex flex-col bg-black/95 backdrop-blur-2xl"
-        >
-          <!-- Top bar with Notch Safe Area Protection -->
-          <div class="w-full flex justify-between items-center pt-[calc(1rem+env(safe-area-inset-top,0px))] px-4 pb-4 z-10 absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent">
-            <div class="flex flex-col min-w-0">
-              <h3 class="text-xs font-mono font-extrabold text-violet-400 tracking-widest uppercase">
-                {{ metadata?.code || 'STREAMING' }}
-              </h3>
-              <span class="text-[10px] text-slate-400 truncate max-w-[200px] sm:max-w-md">
-                {{ metadata?.title || result.title }}
-              </span>
-            </div>
-            
-            <div class="flex gap-2">
-              <!-- Programmatic Picture-in-Picture Button -->
-              <button 
-                v-if="isPiPSupported"
-                :disabled="!isMetadataLoaded" 
-                class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-violet-500/20 hover:text-violet-400 hover:border-violet-500/30 transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed"
-                :title="isMetadataLoaded ? 'Xem Picture in Picture' : 'Đang tải video...'"
-                @click="togglePiP"
-              >
-                <span v-if="!isMetadataLoaded" class="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin"/>
-                <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v7a1 1 0 01-1 1h-5l-4 4v-4H5a1 1 0 01-1-1V5z" />
-                  <rect x="13" y="11" width="7" height="5" rx="1" fill="currentColor" class="text-violet-400" />
-                </svg>
-              </button>
-    
-              <!-- Close Button -->
-              <button 
-                class="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30 transition-all active:scale-90" 
-                @click="stopWatching"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-    
-          <!-- Video Player with Responsive Pad -->
-          <div class="flex-1 flex items-center justify-center w-full h-full relative p-4 sm:p-8">
-            <div class="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden shadow-[0_0_80px_rgba(139,92,246,0.35)] border border-violet-500/20 bg-slate-950 flex items-center justify-center">
-              <video 
-                v-if="isWatching"
-                ref="videoPlayerRef"
-                :src="`/api/play/video?code=${encodeURIComponent(props.result.code || metadata?.code || '')}`" 
-                controls 
-                autoplay 
-                :playsinline="true"
-                :webkit-playsinline="true"
-                class="w-full h-full object-contain z-10"
-                @loadedmetadata="isMetadataLoaded = true"
-              >
-                <track 
-                  kind="subtitles" 
-                  :src="`/api/play/subtitle?code=${encodeURIComponent(props.result.code || metadata?.code || '')}`" 
-                  srclang="ja" 
-                  label="Tiếng Nhật" 
-                  default
-                >
-              </video>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
   </div>
 </template>
 
