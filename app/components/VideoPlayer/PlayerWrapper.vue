@@ -56,6 +56,32 @@ const checkIOS = () => {
          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 }
 
+const isMobileDevice = computed(() => {
+  if (!import.meta.client) return false
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || checkIOS()
+})
+
+// Launch iOS Native Player (Jellyfin Style)
+const launchNativePlayer = () => {
+  const video = videoCanvas.value?.video
+  if (!video) return
+  
+  try {
+    if ((video as any).webkitEnterFullscreen) {
+      // iOS Safari native AVPlayer presentation
+      (video as any).webkitEnterFullscreen()
+    } else if (video.requestFullscreen) {
+      // Android/Desktop fallback to native media fullscreen
+      video.requestFullscreen()
+    } else {
+      console.warn('Native fullscreen is not supported in this browser.')
+    }
+  } catch (err) {
+    console.warn('Failed to launch native system player:', err)
+  }
+  resetIdleTimer()
+}
+
 // Media Play / Pause Controls
 const play = () => {
   const video = videoCanvas.value?.video
@@ -480,6 +506,7 @@ onUnmounted(() => {
           :is-fullscreen="isFullscreen"
           :active-subtitle-track-id="activeSubtitleTrackId"
           :subtitle-tracks="subtitleTracks"
+          :is-mobile="isMobileDevice"
           @play="play"
           @pause="pause"
           @mute="toggleMute"
@@ -488,6 +515,7 @@ onUnmounted(() => {
           @subtitle="(id) => activeSubtitleTrackId = id"
           @fullscreen="toggleFullscreen"
           @pip="togglePiP"
+          @native-player="launchNativePlayer"
         />
       </div>
     </transition>

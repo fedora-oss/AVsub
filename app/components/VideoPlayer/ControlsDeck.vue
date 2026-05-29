@@ -13,10 +13,12 @@ interface Props {
   isFullscreen: boolean
   activeSubtitleTrackId: string | null
   subtitleTracks?: SubtitleTrack[]
+  isMobile?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  subtitleTracks: () => []
+  subtitleTracks: () => [],
+  isMobile: false
 })
 
 const emit = defineEmits<{
@@ -28,6 +30,7 @@ const emit = defineEmits<{
   subtitle: [trackId: string | null]
   fullscreen: []
   pip: []
+  nativePlayer: []
 }>()
 
 // UI Menus Toggles
@@ -232,6 +235,21 @@ defineExpose({
           <path d="M2 19V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" stroke-opacity="0.4"/>
           <rect x="13" y="12" width="7" height="5" rx="1" fill="currentColor"/>
           <path d="m9 14 3-3m0 0h-3.5m3.5 0v3.5"/>
+        </svg>
+      </button>
+
+      <!-- Launch Native System Player (Jellyfin Style) -->
+      <button 
+        v-if="isMobile"
+        class="control-button" 
+        title="Xem bằng trình phát hệ thống (Native Player)"
+        @click="emit('nativePlayer')"
+      >
+        <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" stroke-opacity="0.5"/>
+          <path d="M8 21h8"/>
+          <path d="M12 17v4"/>
+          <path d="m10 7 5 3-5 3V7z" fill="currentColor"/>
         </svg>
       </button>
 
