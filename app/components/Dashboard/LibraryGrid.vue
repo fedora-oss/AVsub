@@ -62,8 +62,7 @@ const openActressProfile = (actressId: number) => {
 
 // Custom function to trigger torrent search tab
 const searchActressTorrent = (keyword: string) => {
-  activeTab.value = 'search'
-  currentKeyword.value = keyword
+  navigateTo(`/?search=${encodeURIComponent(keyword)}`)
 }
 
 // Fetch library data on mounted

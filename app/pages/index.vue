@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useDashboardState } from '~/composables/useDashboardState'
 import type { SearchResult, TorrentResult } from '~/types'
 
@@ -120,6 +120,16 @@ const handleTabChange = (tab: 'search' | 'watcher' | 'library' | 'settings') => 
   }
 }
 
+// Watch route search parameter to trigger searches dynamically
+watch(() => route.query.search, (newSearch) => {
+  if (newSearch) {
+    const searchVal = newSearch as string
+    activeTab.value = 'search'
+    currentKeyword.value = searchVal
+    handleSearch(searchVal)
+  }
+}, { immediate: true })
+
 onMounted(() => {
   detectPWAState()
   
@@ -131,14 +141,6 @@ onMounted(() => {
   window.matchMedia('(display-mode: standalone)').addEventListener('change', (e) => {
     isStandalone.value = e.matches
   })
-
-  // Auto-trigger search if query parameter exists
-  if (route.query.search) {
-    const searchVal = route.query.search as string
-    activeTab.value = 'search'
-    currentKeyword.value = searchVal
-    handleSearch(searchVal)
-  }
 
   // Start polling initially if tab is watcher
   if (activeTab.value === 'watcher') {
