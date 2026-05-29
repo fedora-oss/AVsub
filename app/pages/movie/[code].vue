@@ -83,6 +83,9 @@ const volume = ref(1)
 const isMuted = ref(false)
 const currentSpeed = ref(1.0)
 const isPlayerFullscreen = ref(false)
+// True only when iOS native fullscreen is active (webkitEnterFullscreen)
+// Used to hide custom HTML overlay (which iOS hides anyway) and show <track> subtitle instead
+const isIOSNativeFullscreen = ref(false)
 const isMiniPlayer = ref(false)
 const pipActive = ref(false)
 const showResumePrompt = ref(false)
@@ -292,20 +295,27 @@ const toggleFullscreen = () => {
   const video = videoPlayerRef.value
   if (!container) return
 
-  // iOS Safari: webkitEnterFullscreen() triggers the NATIVE iOS player UI which
-  // hides all custom overlays (subtitles, controls, color settings, etc.).
-  // Instead we use CSS fullscreen: overlay a fixed inset-0 div over the entire
-  // viewport while keeping `playsinline`, so ALL custom UI stays visible.
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
   if (isIOS) {
-    // Pure CSS toggle — no native fullscreen API needed
-    isPlayerFullscreen.value = !isPlayerFullscreen.value
+    // iOS: use webkitEnterFullscreen() on the <video> element for auto-rotate.
+    // Subtitles are served via <track> WebVTT so they appear in the native player UI.
+    if (!isIOSNativeFullscreen.value) {
+      if (video && typeof (video as any).webkitEnterFullscreen === 'function') {
+        // Ensure <track> subtitle is enabled before entering fullscreen
+        syncNativeTrack(true)
+        ;(video as any).webkitEnterFullscreen()
+      }
+    } else {
+      if (video && typeof (video as any).webkitExitFullscreen === 'function') {
+        ;(video as any).webkitExitFullscreen()
+      }
+    }
     return
   }
 
-  // Desktop: use standard Fullscreen API
+  // Desktop: standard Fullscreen API
   const isCurrentlyFullscreen =
     !!document.fullscreenElement ||
     !!(document as any).webkitFullscreenElement
@@ -327,6 +337,17 @@ const toggleFullscreen = () => {
       isPlayerFullscreen.value = false
     }
   }
+}
+
+// Sync the native <track> element mode with subtitle visibility
+const syncNativeTrack = (forceShow?: boolean) => {
+  const video = videoPlayerRef.value
+  if (!video) return
+  const tracks = video.textTracks
+  if (!tracks || tracks.length === 0) return
+  const track = tracks[0]
+  const shouldShow = forceShow !== undefined ? forceShow : isSubtitlesVisible.value
+  track.mode = shouldShow ? 'showing' : 'hidden'
 }
 
 const togglePiP = () => {
@@ -1087,9 +1108,20 @@ const formatVideoTime = (secs: number) => {
               @enterpictureinpicture="syncPiPState"
               @leavepictureinpicture="syncPiPState"
               @webkitpresentationmodechanged="syncPiPState"
-              @webkitbeginfullscreen="isPlayerFullscreen = true"
-              @webkitendfullscreen="isPlayerFullscreen = false"
-            />
+              @webkitbeginfullscreen="() => { isPlayerFullscreen = true; isIOSNativeFullscreen = true; syncNativeTrack(isSubtitlesVisible) }"
+              @webkitendfullscreen="() => { isPlayerFullscreen = false; isIOSNativeFullscreen = false; syncNativeTrack(false) }"
+            >
+              <!-- Native <track> for iOS fullscreen subtitle support -->
+              <!-- mode is set to 'hidden' by default; enabled via syncNativeTrack() when entering iOS fullscreen -->
+              <track
+                v-if="metadata?.hasSubtitle"
+                kind="subtitles"
+                :src="`/api/play/subtitle?code=${encodeURIComponent(code)}`"
+                srclang="ja"
+                label="Japanese"
+                default
+              />
+            </video>
 
             <!-- Always-visible Close Button when video is loading -->
             <button 
@@ -1105,7 +1137,7 @@ const formatVideoTime = (secs: number) => {
 
             <!-- Custom Subtitle Overlay -->
             <div 
-              v-if="isSubtitlesVisible && currentSubtitleLines.length > 0 && isMetadataLoaded" 
+              v-if="isSubtitlesVisible && currentSubtitleLines.length > 0 && isMetadataLoaded && !isIOSNativeFullscreen" 
               class="absolute bottom-16 left-1/2 -translate-x-1/2 text-center pointer-events-none z-20 px-4 py-1.5 w-full max-w-[85%] flex flex-col items-center justify-end"
               :style="{
                 fontSize: `${subtitleSettings.size}px`,
