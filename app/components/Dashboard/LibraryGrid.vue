@@ -1,4 +1,4 @@
-<script setup lang="ts">
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useDashboardState } from '~/composables/useDashboardState'
 
 const {
@@ -22,6 +22,39 @@ const {
   currentKeyword,
 } = useDashboardState()
 
+// Infinite Scroll Sentinel ref and observer
+const loadMoreSentinel = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
+
+const setupIntersectionObserver = () => {
+  if (import.meta.server) return
+  
+  if (observer) {
+    observer.disconnect()
+  }
+  
+  observer = new IntersectionObserver((entries) => {
+    const entry = entries[0]
+    if (entry && entry.isIntersecting && !loadingLibrary.value && pagination.value.page < pagination.value.totalPages) {
+      console.log('[LibraryGrid] Infinite scroll triggered: loading page', pagination.value.page + 1)
+      fetchLibraryMovies(pagination.value.page + 1)
+    }
+  }, {
+    rootMargin: '250px' // Fetch page ahead by 250px
+  })
+  
+  if (loadMoreSentinel.value) {
+    observer.observe(loadMoreSentinel.value)
+  }
+}
+
+// Re-observe if sentinel changes
+watch(loadMoreSentinel, (newVal) => {
+  if (newVal) {
+    setupIntersectionObserver()
+  }
+})
+
 // Custom function to open actress detail route
 const openActressProfile = (actressId: number) => {
   navigateTo(`/actress/${actressId}`)
@@ -31,14 +64,19 @@ const openActressProfile = (actressId: number) => {
 const searchActressTorrent = (keyword: string) => {
   activeTab.value = 'search'
   currentKeyword.value = keyword
-  // Trigger search using a global event or letting the parent handle it
-  // Since we use the same state, updating activeTab and currentKeyword will auto-fill the search
 }
 
 // Fetch library data on mounted
 onMounted(() => {
   fetchFiltersData()
   fetchLibraryMovies(1)
+  setupIntersectionObserver()
+})
+
+onUnmounted(() => {
+  if (observer) {
+    observer.disconnect()
+  }
 })
 </script>
 
@@ -65,23 +103,32 @@ onMounted(() => {
       class="relative w-full h-[320px] sm:h-[400px] rounded-3xl overflow-hidden mb-8 border border-white/[0.06] shadow-2xl flex items-end group/spotlight cursor-pointer select-none"
       @click="navigateTo(`/movie/${featuredMovie.code}`)"
     >
-      <!-- Widescreen Cover Image Background with Rich Blur and Gradients -->
-      <div class="absolute inset-0 z-0 bg-slate-950">
+      <div class="absolute inset-0 z-0 bg-slate-950 overflow-hidden">
+        <!-- 1. Blurred background cover to fill space -->
         <img 
           v-if="featuredMovie.coverUrl"
           :src="featuredMovie.coverUrl" 
           :alt="featuredMovie.title" 
-          class="w-full h-full object-cover transition-transform duration-700 scale-100 group-hover/spotlight:scale-105"
+          class="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-30 select-none pointer-events-none"
+        >
+        <!-- 2. Clean uncropped right-aligned cover -->
+        <img 
+          v-if="featuredMovie.coverUrl"
+          :src="featuredMovie.coverUrl" 
+          :alt="featuredMovie.title" 
+          class="absolute right-0 top-0 bottom-0 h-full w-auto max-w-[65%] object-contain z-10 select-none pointer-events-none transition-transform duration-700 scale-100 group-hover/spotlight:scale-102"
           @error="(e: any) => e.target.src = featuredMovie.posterUrl || '/icon.png'"
         >
+        <!-- Fallback if only poster exists -->
         <img 
           v-else-if="featuredMovie.posterUrl"
           :src="featuredMovie.posterUrl" 
           :alt="featuredMovie.title" 
-          class="w-full h-full object-cover blur-md scale-110 opacity-40"
+          class="w-full h-full object-cover blur-md scale-110 opacity-40 select-none pointer-events-none"
         >
-        <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/70 to-transparent z-10"/>
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent z-10"/>
+        
+        <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/75 to-transparent z-20"/>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent z-20"/>
       </div>
 
       <!-- Spotlight Content Overlay -->
@@ -263,12 +310,23 @@ onMounted(() => {
           @click="navigateTo(`/movie/${movie.code}`)"
         >
           <!-- Card Poster Image -->
-          <div class="movie-poster-container relative aspect-[2/3] overflow-hidden bg-slate-950">
+          <div 
+            class="movie-poster-container relative overflow-hidden bg-slate-950 transition-all duration-300"
+            :class="movie.posterUrl === movie.coverUrl ? 'aspect-[3/2]' : 'aspect-[2/3]'"
+          >
+            <!-- 1. Blurred background image if it is a landscape cover -->
+            <img 
+              v-if="movie.posterUrl && movie.posterUrl === movie.coverUrl"
+              :src="movie.posterUrl" 
+              class="absolute inset-0 w-full h-full object-cover blur-xl opacity-30 z-0 pointer-events-none select-none"
+            >
+            <!-- 2. Main poster image (contain for landscape, cover for portrait) -->
             <img 
               v-if="movie.posterUrl" 
               :src="movie.posterUrl" 
               :alt="movie.title" 
-              class="movie-poster-img w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              class="movie-poster-img w-full h-full z-10 relative transition-transform duration-500 group-hover:scale-105"
+              :class="movie.posterUrl === movie.coverUrl ? 'object-contain' : 'object-cover'"
               loading="lazy"
               @error="(e: any) => e.target.src = '/icon.png'"
             >
@@ -360,27 +418,18 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 📃 Cyberpunk Pagination Footer -->
-      <div v-if="pagination.totalPages > 1" class="library-pagination mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border border-white/[0.05] rounded-2xl bg-slate-900/20 backdrop-blur-md">
-        <button 
-          class="pagination-btn h-9 px-4 rounded-xl border border-white/10 hover:bg-white/5 active:scale-95 transition-all text-xs font-bold text-slate-300 disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5" 
-          :disabled="pagination.page === 1" 
-          @click="fetchLibraryMovies(pagination.page - 1)"
-        >
-          <i class="fa-solid fa-chevron-left"></i>
-          <span>Trang trước</span>
-        </button>
-        <span class="pagination-indicator text-[11px] text-slate-400 font-medium">
-          Trang <strong class="text-violet-400 font-extrabold">{{ pagination.page }}</strong> / {{ pagination.totalPages }} (Tổng: {{ pagination.total }} phim)
-        </span>
-        <button 
-          class="pagination-btn h-9 px-4 rounded-xl border border-white/10 hover:bg-white/5 active:scale-95 transition-all text-xs font-bold text-slate-300 disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5" 
-          :disabled="pagination.page === pagination.totalPages" 
-          @click="fetchLibraryMovies(pagination.page + 1)"
-        >
-          <span>Trang sau</span>
-          <i class="fa-solid fa-chevron-right"></i>
-        </button>
+      <!-- 📃 Infinite Scroll Sentinel & Loader -->
+      <div 
+        ref="loadMoreSentinel" 
+        class="w-full py-10 flex items-center justify-center select-none cursor-pointer"
+        v-if="pagination.page < pagination.totalPages"
+        @click="fetchLibraryMovies(pagination.page + 1)"
+      >
+        <div class="flex items-center gap-2.5 px-5 py-2.5 rounded-full border border-white/[0.06] bg-slate-900/40 backdrop-blur-md text-xs font-semibold text-violet-300 hover:bg-slate-900/60 hover:border-violet-500/20 transition-all shadow-md active:scale-95">
+          <span v-if="loadingLibrary" class="animate-spin w-4 h-4 border-2 border-violet-500 border-t-transparent rounded-full"/>
+          <i v-else class="fa-solid fa-chevron-down text-violet-400"></i>
+          <span>{{ loadingLibrary ? 'Đang tải thêm phim...' : 'Xem thêm phim' }}</span>
+        </div>
       </div>
     </div>
   </div>

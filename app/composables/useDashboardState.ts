@@ -345,7 +345,11 @@ export const useDashboardState = () => {
         }
       }, 2, 1000)
       if (res.success) {
-        libraryMovies.value = res.movies
+        if (pageNum === 1) {
+          libraryMovies.value = res.movies
+        } else {
+          libraryMovies.value = [...libraryMovies.value, ...res.movies]
+        }
         pagination.value = res.pagination
         libraryError.value = null
       }

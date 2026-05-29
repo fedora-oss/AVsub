@@ -853,16 +853,24 @@ const formatVideoTime = (secs: number) => {
       <div v-else-if="metadata" class="relative w-full mt-6">
         
         <!-- Jellyfin Widescreen Featured banner spotlight -->
-        <div class="relative w-full h-[280px] sm:h-[380px] rounded-3xl overflow-hidden mb-8 border border-white/[0.06] shadow-2xl flex items-end">
+        <div class="relative w-full h-[280px] sm:h-[380px] rounded-3xl overflow-hidden mb-8 border border-white/[0.06] shadow-2xl flex items-end overflow-hidden">
           <div class="absolute inset-0 z-0 bg-slate-950">
+            <!-- 1. Blurred background image to fill space -->
             <img 
               v-if="metadata.coverUrl" 
               :src="metadata.coverUrl" 
               :alt="metadata.title" 
-              class="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+              class="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-30 select-none pointer-events-none"
             >
-            <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/75 to-transparent z-10"/>
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent z-10"/>
+            <!-- 2. Clean uncropped right-aligned cover -->
+            <img 
+              v-if="metadata.coverUrl" 
+              :src="metadata.coverUrl" 
+              :alt="metadata.title" 
+              class="absolute right-0 top-0 bottom-0 h-full w-auto max-w-[65%] object-contain z-10 select-none pointer-events-none transition-transform duration-700 hover:scale-102"
+            >
+            <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/75 to-transparent z-20"/>
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent z-20"/>
           </div>
 
           <!-- Banner Spotlight details overlay -->
@@ -934,11 +942,21 @@ const formatVideoTime = (secs: number) => {
           
           <!-- LEFT SIDE: Movie Poster Cover and Basic Quick Stats -->
           <div class="flex flex-col gap-5">
-            <div class="aspect-[2/3] w-full rounded-2xl overflow-hidden bg-slate-900 border border-white/10 shadow-2xl relative">
+            <div 
+              class="w-full rounded-2xl overflow-hidden bg-slate-900 border border-white/10 shadow-2xl relative transition-all duration-300"
+              :class="displayPoster === metadata.coverUrl ? 'aspect-[3/2]' : 'aspect-[2/3]'"
+            >
+              <!-- Blurred background behind landscape cover -->
+              <img 
+                v-if="displayPoster === metadata.coverUrl"
+                :src="displayPoster" 
+                class="absolute inset-0 w-full h-full object-cover blur-xl opacity-35 z-0 pointer-events-none select-none"
+              >
               <img 
                 :src="displayPoster" 
                 :alt="metadata.title" 
-                class="w-full h-full object-cover"
+                class="w-full h-full z-10 relative transition-transform duration-500 hover:scale-102"
+                :class="displayPoster === metadata.coverUrl ? 'object-contain' : 'object-cover'"
               >
             </div>
 
