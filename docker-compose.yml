@@ -61,20 +61,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    networks:
+      - gluetun_network
 
-  # watchtower:
-  #   image: containrrr/watchtower:latest
-  #   container_name: watchtower
-  #   restart: unless-stopped
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #   environment:
-  #     - WATCHTOWER_POLL_INTERVAL=300
-  #     - WATCHTOWER_CLEANUP=true
-  #     - WATCHTOWER_LABEL_ENABLE=false
-  #   # Only monitor and update the 'avsub' container to prevent disruptions elsewhere
-  #   command: --interval 300 avsub
-
-# networks:
-#   traefik-network:
-#     external: true
+networks:
+  gluetun_network:
+    name: gluetun_default
+    external: true
