@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import CustomPlayer from '~/components/VideoPlayer/PlayerWrapper.vue'
+
+definePageMeta({
+  layout: 'player'
+})
 
 interface ActressDetail {
   id: string
@@ -96,6 +101,20 @@ const skipIntroDuration = ref(0)
 const isControlsVisible = ref(true)
 const showSpeedMenu = ref(false)
 const showSubtitleMenu = ref(false)
+
+const startSeekTime = ref(0)
+const playerSubtitles = computed(() => {
+  if (!metadata.value?.hasSubtitle) return []
+  return [
+    {
+      id: 'ja',
+      label: 'Japanese',
+      src: `/api/play/subtitle?code=${encodeURIComponent(code.value)}`,
+      srclang: 'ja',
+      default: true
+    }
+  ]
+})
 
 const videoPlayerRef = ref<HTMLVideoElement | null>(null)
 const playerContainerRef = ref<HTMLElement | null>(null)
@@ -486,17 +505,14 @@ const handleVideoClick = (e: Event) => {
 
 // Progress Resume Handlers
 const handleResumeProgress = (resume: boolean) => {
-  if (videoPlayerRef.value && savedProgress.value) {
+  if (savedProgress.value) {
     if (resume) {
-      videoPlayerRef.value.currentTime = savedProgress.value.currentTime
+      startSeekTime.value = savedProgress.value.currentTime
     } else {
-      videoPlayerRef.value.currentTime = 0
+      startSeekTime.value = 0
     }
   }
   showResumePrompt.value = false
-  if (videoPlayerRef.value) {
-    videoPlayerRef.value.play().catch(() => {})
-  }
 }
 
 const skipIntro = () => {
@@ -645,8 +661,8 @@ const startVideoPlayer = () => {
 }
 
 const closeVideoPlayer = () => {
-  if (videoPlayerRef.value && duration.value > 10) {
-    const current = videoPlayerRef.value.currentTime
+  if (duration.value > 10) {
+    const current = currentTime.value
     if (current >= 5 && current <= duration.value - 10) {
       try {
         localStorage.setItem(`avsub_progress_${code.value}`, JSON.stringify({
@@ -659,13 +675,6 @@ const closeVideoPlayer = () => {
     } else if (current > duration.value - 10) {
       try { localStorage.removeItem(`avsub_progress_${code.value}`) } catch (e) {}
     }
-  }
-
-  if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
-    document.exitFullscreen().catch(() => {})
-  }
-  if (document.pictureInPictureElement) {
-    document.exitPictureInPicture().catch(() => {})
   }
   showVideoPlayer.value = false
 }
@@ -1090,111 +1099,31 @@ const formatVideoTime = (secs: number) => {
       <Transition name="lightbox-fade">
         <div 
           v-if="showVideoPlayer" 
-          class="fixed z-[10000] transition-all duration-500 ease-in-out select-none"
-          :class="isMiniPlayer 
-            ? 'bottom-4 right-4 w-[340px] sm:w-[420px] aspect-video bg-slate-950/95 shadow-[0_15px_50px_rgba(139,92,246,0.4)] border border-violet-500/30 rounded-2xl overflow-hidden pointer-events-auto' 
-            : 'fixed inset-0 flex flex-col bg-transparent items-center justify-center p-4 sm:p-8 pointer-events-auto'"
+          class="fixed inset-0 z-[10000] flex flex-col bg-black/95 items-center justify-center p-4 sm:p-8 pointer-events-auto"
         >
-          <!-- Video Player Container with Custom Controls -->
-          <div 
-            ref="playerContainerRef" 
-            class="relative overflow-hidden bg-slate-950 flex items-center justify-center group transition-all duration-300 w-full"
-            :class="[
-              isMiniPlayer
-                ? 'h-full rounded-none border-none shadow-none pointer-events-auto aspect-video'
-                : isPlayerFullscreen
-                  ? 'fixed inset-0 z-[99999] rounded-none border-none'
-                  : 'aspect-video rounded-2xl max-w-5xl shadow-[0_0_80px_rgba(139,92,246,0.35)] border border-violet-500/20 pointer-events-auto'
-            ]"
-            @click="handleVideoClick"
-            @mousemove="triggerControlsActivity"
-            @mouseleave="hideControlsOnLeave"
+          <!-- Close button -->
+          <button 
+            class="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-slate-950/80 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30 transition-all active:scale-90 shadow-lg" 
+            title="Đóng trình phát (Esc)"
+            @click.stop="closeVideoPlayer"
           >
-            <!-- Native HTML5 Video Element -->
-            <video 
-              v-if="showVideoPlayer"
-              ref="videoPlayerRef"
-              :src="`/api/play/video?code=${encodeURIComponent(code)}`" 
-              autoplay 
-              playsinline
-              webkit-playsinline
-              x-webkit-airplay="allow"
-              :allowsPictureInPicture="true"
-              :webkit-allowsPictureInPicture="true"
-              class="w-full h-full object-contain z-10 cursor-none"
-              @loadedmetadata="onMetadataLoaded"
-              @timeupdate="onTimeUpdate"
-              @durationchange="onDurationChange"
-              @play="isPlaying = true"
-              @pause="isPlaying = false"
-              @volumechange="onVolumeChange"
-              @ended="onVideoEnded"
-              @enterpictureinpicture="syncPiPState"
-              @leavepictureinpicture="syncPiPState"
-              @webkitpresentationmodechanged="syncPiPState"
-              @webkitbeginfullscreen="() => { isPlayerFullscreen = true; isIOSNativeFullscreen = true; syncNativeTrack(isSubtitlesVisible) }"
-              @webkitendfullscreen="() => { isPlayerFullscreen = false; isIOSNativeFullscreen = false; syncNativeTrack(false) }"
-            >
-              <!-- Native <track> for iOS fullscreen subtitle support -->
-              <!-- mode is set to 'hidden' by default; enabled via syncNativeTrack() when entering iOS fullscreen -->
-              <track
-                v-if="metadata?.hasSubtitle"
-                kind="subtitles"
-                :src="`/api/play/subtitle?code=${encodeURIComponent(code)}`"
-                srclang="ja"
-                label="Japanese"
-                default
-              />
-            </video>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
 
-            <!-- Always-visible Close Button when video is loading -->
-            <button 
-              v-if="!isMetadataLoaded"
-              class="absolute top-4 right-4 z-50 w-8 h-8 rounded-full bg-slate-950/80 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30 transition-all active:scale-90 shadow-lg" 
-              title="Đóng trình phát (Esc)"
-              @click.stop="closeVideoPlayer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <!-- Custom Subtitle Overlay -->
-            <div 
-              v-if="isSubtitlesVisible && currentSubtitleLines.length > 0 && isMetadataLoaded && !isIOSNativeFullscreen" 
-              class="absolute bottom-16 left-1/2 -translate-x-1/2 text-center pointer-events-none z-20 px-4 py-1.5 w-full max-w-[85%] flex flex-col items-center justify-end"
-              :style="{
-                fontSize: `${subtitleSettings.size}px`,
-                color: subtitleSettings.color,
-                fontFamily: `'Outfit', -apple-system, BlinkMacSystemFont, sans-serif`,
-                fontWeight: '800',
-                lineHeight: '1.4',
-                textShadow: subtitleSettings.borderStyle === 'thin-black'
-                  ? '-1.2px -1.2px 0 #000, 1.2px -1.2px 0 #000, -1.2px 1.2px 0 #000, 1.2px 1.2px 0 #000, 0 1px 2px rgba(0,0,0,0.8)'
-                  : subtitleSettings.borderStyle === 'thick-black'
-                    ? '-2.2px -2.2px 0 #000, 2.2px -2.2px 0 #000, -2.2px 2.2px 0 #000, 2.2px 2.2px 0 #000, -1px 2px 3px rgba(0,0,0,0.9), 1px 2px 3px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.95)'
-                    : subtitleSettings.borderStyle === 'drop-shadow'
-                      ? '0 3px 6px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.8)'
-                      : 'none',
-                backgroundColor: subtitleSettings.backgroundStyle === 'transparent-dark'
-                  ? 'rgba(8, 7, 11, 0.45)'
-                  : subtitleSettings.backgroundStyle === 'capsule'
-                    ? 'rgba(8, 7, 11, 0.85)'
-                    : 'transparent',
-                borderRadius: subtitleSettings.backgroundStyle === 'capsule' ? '8px' : '4px',
-                padding: subtitleSettings.backgroundStyle === 'capsule' ? '6px 16px' : '4px 8px'
-              }"
-            >
-              <p 
-                v-for="(line, idx) in currentSubtitleLines" 
-                :key="idx" 
-                class="m-0 text-center whitespace-pre-wrap select-none"
-              >
-                {{ line }}
-              </p>
-            </div>
-
-            <!-- Watch Progress Resume Prompt -->
+          <!-- Glassmorphic iOS 26 PWA Custom Player Component -->
+          <div class="w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl border border-white/5 bg-slate-950 relative">
+            <CustomPlayer 
+              :src="`/api/play/video?code=${encodeURIComponent(code)}`"
+              :title="metadata?.title || code"
+              :subtitle-tracks="playerSubtitles"
+              :start-time="startSeekTime"
+              @timeupdate="(time) => currentTime = time"
+              @loadedmetadata="(d) => duration = d"
+            />
+            
+            <!-- Watch Progress Resume Prompt overlay -->
             <Transition name="fade">
               <div 
                 v-if="showResumePrompt && savedProgress" 
@@ -1224,367 +1153,6 @@ const formatVideoTime = (secs: number) => {
                 </div>
               </div>
             </Transition>
-
-            <!-- Skip Intro Floating Button -->
-            <Transition name="fade">
-              <button 
-                v-if="showSkipIntroButton && isPlaying"
-                class="absolute bottom-20 right-4 z-40 bg-slate-950/95 border border-violet-500/30 rounded-xl px-4 py-2 flex items-center gap-2 hover:bg-violet-600 hover:text-white hover:border-violet-500 text-slate-200 text-xs font-bold font-mono tracking-wide shadow-2xl backdrop-blur-md cursor-pointer pointer-events-auto transition-all duration-300 active:scale-95"
-                @click.stop="skipIntro"
-              >
-                ⏭️ Bỏ qua Intro
-              </button>
-            </Transition>
-
-            <!-- Big Play/Pause/Loading Center Overlay -->
-            <div 
-              class="absolute inset-0 flex items-center justify-center z-20 bg-black/30 pointer-events-none transition-opacity duration-300"
-              :class="{ 'opacity-100': !isMetadataLoaded || !isPlaying, 'opacity-0': isMetadataLoaded && isPlaying }"
-            >
-              <!-- Loading Spinner -->
-              <div v-if="!isMetadataLoaded" class="flex flex-col items-center gap-3">
-                <span class="w-12 h-12 border-4 border-violet-500 border-t-transparent rounded-full animate-spin"/>
-                <span class="text-xs font-semibold text-slate-300">Đang tải luồng video...</span>
-              </div>
-              <!-- Play Icon -->
-              <button 
-                v-else-if="!isPlaying"
-                class="w-16 h-16 rounded-full bg-violet-600/80 text-white flex items-center justify-center shadow-lg shadow-violet-600/30 scale-100 hover:scale-110 hover:bg-violet-500 transition-all pointer-events-auto active:scale-95"
-                @click.stop="togglePlay"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 fill-current ml-1" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-              </button>
-            </div>
-
-            <!-- Custom Video Controls Overlay (Jellyfin Style) -->
-            <Transition name="fade">
-              <div 
-                v-show="isControlsVisible && isMetadataLoaded && !isMiniPlayer" 
-                class="absolute inset-0 z-30 flex flex-col justify-between bg-gradient-to-t from-black/90 via-transparent to-black/75 pointer-events-none"
-              >
-                <!-- Top Title Bar -->
-                <div class="w-full flex justify-between items-center p-4 pointer-events-auto" @click.stop>
-                  <div class="flex flex-col min-w-0">
-                    <h3 class="text-xs font-mono font-extrabold text-violet-400 tracking-widest uppercase">
-                      {{ code }}
-                    </h3>
-                    <span class="text-xs text-slate-200 truncate max-w-sm sm:max-w-xl font-medium">
-                      {{ metadata?.title }}
-                    </span>
-                  </div>
-                  
-                  <!-- Close Button -->
-                  <button 
-                    class="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30 transition-all active:scale-90" 
-                    title="Đóng trình phát (Esc)"
-                    @click="closeVideoPlayer"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                <!-- Bottom Controls Area -->
-                <div class="w-full p-2.5 sm:p-4 flex flex-col gap-2.5 sm:gap-3 pointer-events-auto" @click.stop>
-                  <!-- Seek Bar (Timeline Slider) -->
-                  <div class="flex items-center gap-2 sm:gap-3 w-full group/seek">
-                    <span class="text-[9px] sm:text-[10px] font-mono text-slate-300 min-w-[45px] sm:min-w-[50px] text-right">{{ formatVideoTime(currentTime) }}</span>
-                    <div class="relative flex-1 h-1.5 bg-white/20 rounded-full cursor-pointer overflow-hidden">
-                      <div 
-                        class="absolute left-0 top-0 h-full bg-gradient-to-r from-violet-600 to-fuchsia-500"
-                        :style="{ width: `${progressPercentage}%` }"
-                      />
-                      <input 
-                        type="range"
-                        min="0"
-                        :max="duration || 100"
-                        :value="currentTime"
-                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        @input="onSeekInput"
-                        @change="onSeekChange"
-                      >
-                    </div>
-                    <span class="text-[9px] sm:text-[10px] font-mono text-slate-300 min-w-[45px] sm:min-w-[50px]">{{ formatVideoTime(duration) }}</span>
-                  </div>
-
-                  <!-- Action Control Buttons -->
-                  <div class="flex items-center justify-between w-full relative">
-                    <!-- Left: Play/Pause, Rewind, Fast Forward, Volume -->
-                    <div class="flex items-center gap-2 sm:gap-4 z-30">
-                      <button 
-                        class="w-8 h-8 rounded-full hover:bg-white/10 text-white flex items-center justify-center transition-all"
-                        :title="isPlaying ? 'Tạm dừng (Space)' : 'Phát (Space)'"
-                        @click="togglePlay"
-                      >
-                        <i v-if="isPlaying" class="fa-solid fa-pause text-sm"></i>
-                        <i v-else class="fa-solid fa-play text-sm ml-0.5"></i>
-                      </button>
-
-                      <button 
-                        class="w-8 h-8 rounded-full hover:bg-white/10 text-white flex items-center justify-center transition-all"
-                        title="Lùi 10 giây (ArrowLeft)"
-                        @click="skipBack"
-                      >
-                        <i class="fa-solid fa-backward-step text-sm"></i>
-                      </button>
-
-                      <button 
-                        class="w-8 h-8 rounded-full hover:bg-white/10 text-white flex items-center justify-center transition-all"
-                        title="Tiến 10 giây (ArrowRight)"
-                        @click="skipForward"
-                      >
-                        <i class="fa-solid fa-forward-step text-sm"></i>
-                      </button>
-
-                      <!-- Volume Controls -->
-                      <div class="flex items-center gap-1.5 sm:gap-2 group/volume relative pl-1.5">
-                        <button 
-                          class="w-8 h-8 rounded-full hover:bg-white/10 text-white flex items-center justify-center transition-all"
-                          :title="isMuted ? 'Bật âm thanh (M)' : 'Tắt tiếng (M)'"
-                          @click="toggleMute"
-                        >
-                          <i v-if="isMuted || volume === 0" class="fa-solid fa-volume-xmark text-sm"></i>
-                          <i v-else-if="volume < 0.5" class="fa-solid fa-volume-low text-sm"></i>
-                          <i v-else class="fa-solid fa-volume-high text-sm"></i>
-                        </button>
-                        
-                        <!-- Smooth Expandable Volume Bar -->
-                        <div class="w-0 overflow-hidden sm:group-hover/volume:w-20 transition-all duration-300 flex items-center h-8">
-                          <input 
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.05"
-                            :value="isMuted ? 0 : volume"
-                            class="w-16 h-1.5 rounded-full bg-white/20 accent-violet-500 cursor-pointer"
-                            @input="onVolumeInput"
-                          >
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Right: Speed, PiP, MiniPlayer, Subtitle Toggle, Fullscreen -->
-                    <div class="flex items-center gap-2 sm:gap-3 z-30">
-                      <!-- Speed selection dropdown -->
-                      <div class="relative">
-                        <button 
-                          class="h-8 px-2.5 rounded-xl hover:bg-white/10 text-white flex items-center gap-1 text-[10px] font-black font-mono tracking-wider transition-all"
-                          :class="{ 'bg-white/10': showSpeedMenu }"
-                          title="Tốc độ phát"
-                          @click="() => { showSpeedMenu = !showSpeedMenu; showSubtitleMenu = false; }"
-                        >
-                          <i class="fa-solid fa-gauge-high text-xs"></i>
-                          <span>{{ currentSpeed.toFixed(1) }}x</span>
-                        </button>
-                        <div v-if="showSpeedMenu" class="absolute right-0 bottom-full mb-2 w-28 bg-slate-950/95 border border-white/10 rounded-xl p-1 shadow-2xl flex flex-col gap-0.5">
-                          <button 
-                            v-for="s in [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]" 
-                            :key="s"
-                            class="w-full px-2.5 py-1.5 rounded-lg text-left text-[10px] font-bold font-mono tracking-wider"
-                            :class="currentSpeed === s ? 'bg-violet-600 text-white' : 'text-slate-300 hover:bg-white/5'"
-                            @click="setSpeed(s)"
-                          >
-                            {{ s.toFixed(2) }}x
-                          </button>
-                        </div>
-                      </div>
-
-                      <!-- Custom Subtitle Styling Menu -->
-                      <div class="relative">
-                        <button 
-                          class="w-8 h-8 rounded-full hover:bg-white/10 text-white flex items-center justify-center transition-all"
-                          :class="{ 'bg-white/10 text-violet-400': showSubtitleMenu || !isSubtitlesVisible }"
-                          title="Tùy chỉnh phụ đề (C)"
-                          @click="() => { showSubtitleMenu = !showSubtitleMenu; showSpeedMenu = false; }"
-                        >
-                          <i class="fa-solid fa-closed-captioning text-sm"></i>
-                        </button>
-                        
-                        <div v-if="showSubtitleMenu" class="absolute right-0 bottom-full mb-2 w-48 bg-slate-950/95 border border-white/10 rounded-2xl p-3 shadow-2xl flex flex-col gap-3">
-                          <div class="flex justify-between items-center pb-2 border-b border-white/5">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phụ đề</span>
-                            <button 
-                              class="text-[10px] font-extrabold px-2 py-0.5 rounded border border-white/10 hover:bg-white/5"
-                              :class="isSubtitlesVisible ? 'text-emerald-400' : 'text-rose-400'"
-                              @click="isSubtitlesVisible = !isSubtitlesVisible"
-                            >
-                              {{ isSubtitlesVisible ? 'Đang bật' : 'Đang tắt' }}
-                            </button>
-                          </div>
-
-                          <!-- Font Size slider -->
-                          <div class="flex flex-col gap-1.5">
-                            <div class="flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                              <span>Kích thước chữ</span>
-                              <span>{{ subtitleSettings.size }}px</span>
-                            </div>
-                            <input 
-                              type="range"
-                              min="14"
-                              max="48"
-                              v-model="subtitleSettings.size"
-                              class="w-full h-1.5 rounded-full bg-white/20 accent-violet-500 cursor-pointer"
-                              @input="saveSubtitleSettings"
-                            >
-                          </div>
-
-                          <!-- Subtitle Text Color -->
-                          <div class="flex flex-col gap-1.5">
-                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Màu chữ</span>
-                            <div class="flex gap-2">
-                              <span 
-                                v-for="color in ['#ffffff', '#fef08a', '#86efac', '#67e8f9']" 
-                                :key="color"
-                                class="w-5 h-5 rounded-full cursor-pointer border border-white/20 transition-all hover:scale-110"
-                                :style="{ background: color }"
-                                :class="{ 'scale-110 ring-2 ring-violet-500 border-transparent': subtitleSettings.color === color }"
-                                @click="subtitleSettings.color = color; saveSubtitleSettings()"
-                              />
-                            </div>
-                          </div>
-
-                          <!-- Border Style (Đổ bóng) -->
-                          <div class="flex flex-col gap-1.5">
-                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Kiểu viền / Đổ bóng</span>
-                            <div class="grid grid-cols-2 gap-1">
-                              <button 
-                                v-for="style in [
-                                  { key: 'none', label: 'Không viền' },
-                                  { key: 'thin-black', label: 'Viền mỏng' },
-                                  { key: 'thick-black', label: 'Viền dày' },
-                                  { key: 'drop-shadow', label: 'Đổ bóng' }
-                                ]" 
-                                :key="style.key"
-                                class="py-1 rounded bg-white/5 border text-[9px] font-bold hover:bg-white/10"
-                                :class="subtitleSettings.borderStyle === style.key ? 'border-violet-500 text-violet-300' : 'border-white/10 text-slate-300'"
-                                @click="subtitleSettings.borderStyle = style.key; saveSubtitleSettings()"
-                              >
-                                {{ style.label }}
-                              </button>
-                            </div>
-                          </div>
-
-                          <!-- Background Style -->
-                          <div class="flex flex-col gap-1.5">
-                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Nền phụ đề</span>
-                            <div class="grid grid-cols-3 gap-1">
-                              <button 
-                                v-for="style in [
-                                  { key: 'none', label: 'Không nền' },
-                                  { key: 'transparent-dark', label: 'Mờ' },
-                                  { key: 'capsule', label: 'Hộp đen' }
-                                ]" 
-                                :key="style.key"
-                                class="py-1 rounded bg-white/5 border text-[9px] font-bold hover:bg-white/10"
-                                :class="subtitleSettings.backgroundStyle === style.key ? 'border-violet-500 text-violet-300' : 'border-white/10 text-slate-300'"
-                                @click="subtitleSettings.backgroundStyle = style.key; saveSubtitleSettings()"
-                              >
-                                {{ style.label }}
-                              </button>
-                            </div>
-                          </div>
-
-                          <!-- Offset settings -->
-                          <div class="flex flex-col gap-1.5">
-                            <div class="flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                              <span>Lệch phụ đề (Sync)</span>
-                              <span class="font-mono text-violet-400" :class="{ 'text-emerald-400': subtitleSettings.offset === 0 }">{{ subtitleSettings.offset > 0 ? '+' : '' }}{{ subtitleSettings.offset }}ms</span>
-                            </div>
-                            <div class="grid grid-cols-3 gap-1">
-                              <button class="py-1 rounded bg-white/5 border border-white/10 text-[9px] font-bold hover:bg-white/10" @click="changeSubtitleOffset(-250)">-250ms</button>
-                              <button class="py-1 rounded bg-white/5 border border-white/10 text-[9px] font-bold hover:bg-white/10" @click="resetSubtitleOffset">Reset</button>
-                              <button class="py-1 rounded bg-white/5 border border-white/10 text-[9px] font-bold hover:bg-white/10" @click="changeSubtitleOffset(250)">+250ms</button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Picture in Picture -->
-                      <button 
-                        v-if="isPiPSupported"
-                        class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-all active:scale-90"
-                        :class="pipActive ? 'text-violet-400' : 'text-white'"
-                        :title="pipActive ? 'Thoát PiP (P)' : 'Picture-in-Picture (P)'"
-                        @click.stop="togglePiP"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <rect x="2" y="3" width="20" height="14" rx="2" />
-                          <rect x="12" y="9" width="9" height="7" rx="1" fill="currentColor" stroke="none" />
-                        </svg>
-                      </button>
-
-                      <!-- Mini-Player Button -->
-                      <button 
-                        v-if="!isMiniPlayer"
-                        class="w-8 h-8 rounded-full hover:bg-white/10 text-white flex items-center justify-center transition-all active:scale-90"
-                        title="Chế độ thu nhỏ (I)"
-                        @click.stop="isMiniPlayer = true"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <rect x="3" y="3" width="18" height="14" rx="2" />
-                          <line x1="3" y1="9" x2="21" y2="9" />
-                          <rect x="13" y="12" width="5" height="3" rx="0.5" />
-                        </svg>
-                      </button>
-
-                      <!-- Fullscreen -->
-                      <button 
-                        class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-all active:scale-90"
-                        :class="isPlayerFullscreen ? 'text-violet-400' : 'text-white'"
-                        :title="isPlayerFullscreen ? 'Thoát toàn màn hình (F)' : 'Toàn màn hình (F)'"
-                        @click.stop="toggleFullscreen"
-                      >
-                        <svg v-if="isPlayerFullscreen" xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="4 14 10 14 10 20" />
-                          <polyline points="20 10 14 10 14 4" />
-                          <line x1="14" y1="10" x2="21" y2="3" />
-                          <line x1="10" y1="14" x2="3" y2="21" />
-                        </svg>
-                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="15 3 21 3 21 9" />
-                          <polyline points="9 21 3 21 3 15" />
-                          <line x1="21" y1="3" x2="14" y2="10" />
-                          <line x1="3" y1="21" x2="10" y2="14" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Transition>
-
-            <!-- Mini Player Close/Scale Action bar -->
-            <div 
-              v-if="isMiniPlayer" 
-              class="absolute top-2 right-2 z-50 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <button 
-                class="w-6 h-6 rounded-full bg-slate-950/80 border border-white/10 text-white flex items-center justify-center hover:bg-slate-800 transition-all pointer-events-auto"
-                title="Khôi phục trình phát lớn"
-                @click.stop="isMiniPlayer = false"
-              >
-                <i class="fa-solid fa-expand text-[10px]"></i>
-              </button>
-              <button 
-                class="w-6 h-6 rounded-full bg-rose-950/80 border border-rose-500/20 text-rose-400 flex items-center justify-center hover:bg-rose-900 transition-all pointer-events-auto"
-                title="Đóng trình phát"
-                @click.stop="closeVideoPlayer"
-              >
-                <i class="fa-solid fa-xmark text-[10px]"></i>
-              </button>
-            </div>
-
-            <!-- Mini-player captioning track (simplified version for mini size) -->
-            <div 
-              v-if="isMiniPlayer && isSubtitlesVisible && currentSubtitleLines.length > 0"
-              class="absolute bottom-2 inset-x-2 text-center pointer-events-none select-none z-30"
-            >
-              <span class="inline-block px-2.5 py-1 rounded bg-black/80 border border-white/5 text-[10px] font-sans font-black text-white leading-normal">
-                {{ currentSubtitleLines.join(' ') }}
-              </span>
-            </div>
-
           </div>
         </div>
       </Transition>

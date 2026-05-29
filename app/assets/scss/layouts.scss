@@ -1,0 +1,224 @@
+// AVsub Layouts SCSS Stylesheet
+// Controls layout wrapping, headers app-bar, and floating docks bottom-nav
+
+@import './variables';
+
+// 1. Immersive default layout structure
+.layout-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.layout-main-content {
+  flex: 1;
+  padding-top: 5rem;      // Prevent clipping under fixed header
+  padding-bottom: 6rem;   // Prevent clipping under floating dock footer
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  
+  // Safe Area updates for side notches in landscape
+  padding-left: calc(1rem + var(--safe-left));
+  padding-right: calc(1rem + var(--safe-right));
+}
+
+// 2. Premium iOS 26 Glassmorphic Header (App Bar)
+.layout-header-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4.5rem;
+  z-index: 100;
+  
+  // Glassmorphic styling
+  background: rgba(8, 7, 11, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  
+  // Padding & Safe area alignment
+  padding: var(--safe-top) 1.5rem 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+
+    .brand-logo {
+      width: 2.25rem;
+      height: 2.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, $accent-color, #ff6b62);
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 900;
+      font-size: 1.15rem;
+      font-family: 'Outfit', sans-serif;
+      box-shadow: 0 0 15px $accent-glow;
+    }
+
+    .brand-title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 900;
+      font-size: 1.25rem;
+      letter-spacing: 0.08em;
+      color: #ffffff;
+      
+      .brand-highlight {
+        color: $accent-color;
+        text-shadow: 0 0 10px $accent-glow;
+      }
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .status-badge {
+      font-size: 9px;
+      font-weight: 800;
+      color: #34c759; // Apple green
+      background: rgba(52, 199, 89, 0.1);
+      border: 1px solid rgba(52, 199, 89, 0.25);
+      padding: 0.25rem 0.5rem;
+      border-radius: 9999px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      animation: pulse 1.5s infinite alternate;
+    }
+  }
+}
+
+// 3. Floating Glassmorphic Pill Dock Navigation (Bottom Nav)
+.layout-bottom-dock {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 2.5rem);
+  max-width: 28rem;
+  height: 4.25rem;
+  z-index: 100;
+  
+  // Safe Area spacing updates
+  margin-bottom: var(--safe-bottom);
+
+  // iOS 26 reflective glass container
+  background: rgba(10, 9, 13, 0.8);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 9999px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+  padding: 0 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  
+  // Floating sheens & highlights
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    padding: 1px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+// 4. Individual Navigation Pill item
+.dock-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-decoration: none;
+  height: 3.25rem;
+  width: 4rem;
+  border-radius: 12px;
+  transition: all $duration-smooth $ease-spring;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  
+  // Touch Target Size standard
+  min-height: 44px;
+  min-width: 44px;
+
+  svg, i {
+    width: 1.35rem;
+    height: 1.35rem;
+    font-size: 1.2rem;
+    transition: transform $duration-quick ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: color $duration-quick ease;
+  }
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.85);
+    
+    svg, i {
+      transform: translateY(-2px);
+    }
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+
+  // Active navigation highlight
+  &.router-link-active, &.is-active {
+    color: $accent-color;
+    text-shadow: 0 0 10px rgba(255, 59, 48, 0.2);
+
+    svg, i {
+      transform: scale(1.15) translateY(-1px);
+      filter: drop-shadow(0 0 8px $accent-glow);
+    }
+
+    .nav-label {
+      color: $accent-color;
+      font-weight: 800;
+    }
+  }
+}
+
+// 5. Immersive Player specific layout container
+.player-layout-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+  overflow: hidden;
+}

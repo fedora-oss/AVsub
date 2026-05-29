@@ -1,106 +1,12 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-
-onMounted(() => {
-  if (import.meta.client && 'serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then((reg) => {
-          console.log('PWA Service Worker registered successfully:', reg.scope)
-        })
-        .catch((err) => {
-          console.warn('PWA Service Worker registration failed:', err)
-        })
-    })
-  }
-})
+// Nuxt 3 Global App Entrypoint
+// PWA service worker registration and updates are managed automatically by @vite-pwa/nuxt
 </script>
 
 <template>
-  <div class="app-wrapper">
-    <NuxtPage />
-  </div>
+  <NuxtLayout>
+    <div class="app-wrapper">
+      <NuxtPage />
+    </div>
+  </NuxtLayout>
 </template>
-
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap');
-
-:root {
-  --bg-color: #08070b;
-  --text-color: #f1f5f9;
-  --text-muted: rgba(255, 255, 255, 0.5);
-  --card-bg: rgba(15, 13, 26, 0.35);
-  --border-color: rgba(255, 255, 255, 0.06);
-  --glow-color: rgba(124, 58, 237, 0.15);
-  --input-bg: rgba(0, 0, 0, 0.4);
-  --input-focus-bg: rgba(15, 13, 26, 0.9);
-  --app-gradient: radial-gradient(circle at 15% 0%, rgba(0, 220, 130, 0.08) 0%, transparent 45%),
-                  radial-gradient(circle at 85% 0%, rgba(139, 92, 246, 0.09) 0%, transparent 45%),
-                  radial-gradient(circle at 50% 50%, rgba(25, 20, 35, 0.3) 0%, transparent 100%);
-  --scrollbar-bg: #08070b;
-  --scrollbar-thumb: rgba(255, 255, 255, 0.08);
-  --actress-bg: rgba(255, 255, 255, 0.05);
-  --actress-text: rgba(255, 255, 255, 0.65);
-  --actress-border: rgba(255, 255, 255, 0.08);
-  --shadow-color: rgba(0, 0, 0, 0.5);
-  --card-hover-border: rgba(124, 58, 237, 0.35);
-  --card-hover-bg: rgba(20, 18, 32, 0.5);
-}
-
-body {
-  margin: 0;
-  padding: 0;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-
-h1, h2, h3, .badge {
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.app-wrapper {
-  background: var(--app-gradient);
-  min-height: 100vh;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-/* Beautiful custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--scrollbar-bg);
-  transition: background 0.3s ease;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 4px;
-  transition: background 0.3s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.35);
-}
-
-/* Hide scrollbars but keep functionality */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
-</style>
-

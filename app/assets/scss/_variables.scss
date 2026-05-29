@@ -1,0 +1,33 @@
+// AVsub Pro Video Player SCSS Variables
+// Defining the premium iOS 26 Glassmorphism design tokens
+
+// Colors
+$bg-player: #050406;
+$accent-color: #ff3b30; // iOS System Red Accent
+$accent-glow: rgba(255, 59, 48, 0.4);
+$white-glass: rgba(255, 255, 255, 0.08);
+$white-glass-hover: rgba(255, 255, 255, 0.15);
+$white-glass-active: rgba(255, 255, 255, 0.2);
+
+$border-glass: rgba(255, 255, 255, 0.09);
+$border-glass-highlight: rgba(255, 255, 255, 0.2);
+
+$black-glass: rgba(10, 9, 13, 0.7);
+$black-glass-deep: rgba(5, 4, 6, 0.85);
+
+// Glassmorphism Filter Config
+$glass-blur: 24px;
+$glass-filter: blur(#{$glass-blur}) #{'saturate(190%)'};
+
+// Spring Physics Animations (iOS-like)
+$ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+$duration-smooth: 0.35s;
+$duration-quick: 0.2s;
+
+// Z-index Hierarchy
+$z-video: 10;
+$z-overlay: 20;
+$z-controls: 30;
+$z-menus: 40;
+$z-ripple: 15;
+$z-fullscreen: 9999;

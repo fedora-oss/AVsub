@@ -6,5 +6,7 @@ minimumReleaseAgeExclude:
   - '@thaunknown/simple-peer'
   - '@thaunknown/simple-websocket'
   - 'es-object-atoms'
+  - 'immutable'
   - 'semver'
+  - 'typed-array-length'
   - 'webrtc-polyfill'

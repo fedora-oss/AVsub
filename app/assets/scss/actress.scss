@@ -1,0 +1,108 @@
+.actress-detail-tab-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.actress-detail-nav {
+  margin-bottom: 0.5rem;
+}
+
+.actress-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.7rem 1.4rem;
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  font-family: 'Outfit', sans-serif;
+}
+
+.actress-back-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: white;
+  transform: translateX(-4px);
+  box-shadow: 0 6px 24px rgba(139, 92, 246, 0.2);
+}
+
+.actress-detail-header-card {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(167, 139, 250, 0.05);
+}
+
+.actress-detail-banner-bg {
+  z-index: 0;
+}
+
+.actress-detail-header-content {
+  z-index: 1;
+}
+
+.actress-detail-avatar-fallback {
+  background: #171526;
+}
+
+.actress-detail-name {
+  background: linear-gradient(135deg, #c084fc 0%, #ff80b9 50%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-family: 'Outfit', sans-serif;
+}
+
+.actress-detail-badge {
+  font-family: 'Outfit', sans-serif;
+  backdrop-filter: blur(8px);
+}
+
+.actress-detail-badge.jp {
+  box-shadow: 0 2px 10px rgba(0, 220, 130, 0.05);
+}
+
+.actress-detail-badge.aliases {
+  box-shadow: 0 2px 10px rgba(167, 139, 250, 0.05);
+}
+
+.actress-detail-torrent-btn {
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+  font-family: 'Outfit', sans-serif;
+}
+
+.actress-detail-torrent-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(168, 85, 247, 0.55);
+  opacity: 0.98;
+}
+
+.actress-detail-torrent-btn:active {
+  transform: translateY(0);
+}
+
+.actress-works-section-title {
+  letter-spacing: -0.02em;
+}
+
+.actress-link-tag {
+  cursor: pointer;
+}
+
+.actress-link-tag:hover {
+  text-decoration: underline;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
