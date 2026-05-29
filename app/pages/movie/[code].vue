@@ -112,11 +112,33 @@ const progressPercentage = computed(() => {
 
 // PiP Supported check
 const isPiPSupported = computed(() => {
-  if (typeof document === 'undefined' || typeof navigator === 'undefined') return false
+  if (typeof document === 'undefined') return false
+  const video = videoPlayerRef.value
+  if (video) {
+    if (typeof video.webkitSupportsPresentationMode === 'function') {
+      return video.webkitSupportsPresentationMode('picture-in-picture')
+    }
+  }
   return !!(
     document.pictureInPictureEnabled ||
-    /iphone|ipad|ipod|safari/i.test(navigator.userAgent)
+    (typeof HTMLVideoElement !== 'undefined' && HTMLVideoElement.prototype.webkitSupportsPresentationMode)
   )
+})
+
+// Movie poster computed to prioritize vertical poster/profile image over cover
+const displayPoster = computed(() => {
+  if (!metadata.value) return '/icon.png'
+  
+  const poster = metadata.value.posterUrl || ''
+  const cover = metadata.value.coverUrl || ''
+  const cropped = (metadata.value as any).croppedPosterUrl || ''
+  
+  // If poster is same as cover (meaning it's horizontal landscape), prefer cropped vertical poster
+  if (poster === cover && cropped) {
+    return cropped
+  }
+  
+  return poster || cropped || cover || '/icon.png'
 })
 
 // ── Settings Handlers ───────────────────────────────────────────────────────
@@ -369,6 +391,11 @@ const togglePiP = () => {
       video.webkitSetPresentationMode('inline')
       pipActive.value = false
       return
+    }
+
+    // Exit custom fullscreen if active before requesting PiP to prevent layout bugs
+    if (isPlayerFullscreen.value && !isIOSNativeFullscreen.value) {
+      toggleFullscreen()
     }
 
     // iOS/Safari: prefer webkitSetPresentationMode
@@ -905,7 +932,7 @@ const formatVideoTime = (secs: number) => {
           <div class="flex flex-col gap-5">
             <div class="aspect-[2/3] w-full rounded-2xl overflow-hidden bg-slate-900 border border-white/10 shadow-2xl relative">
               <img 
-                :src="metadata.posterUrl || metadata.coverUrl || '/icon.png'" 
+                :src="displayPoster" 
                 :alt="metadata.title" 
                 class="w-full h-full object-cover"
               >
@@ -1071,7 +1098,7 @@ const formatVideoTime = (secs: number) => {
           class="fixed z-[10000] transition-all duration-500 ease-in-out select-none"
           :class="isMiniPlayer 
             ? 'bottom-4 right-4 w-[340px] sm:w-[420px] aspect-video bg-slate-950/95 shadow-[0_15px_50px_rgba(139,92,246,0.4)] border border-violet-500/30 rounded-2xl overflow-hidden pointer-events-auto' 
-            : 'fixed inset-0 flex flex-col bg-[#08070b]/98 backdrop-blur-md items-center justify-center p-4 sm:p-8 pointer-events-auto'"
+            : 'fixed inset-0 flex flex-col bg-transparent items-center justify-center p-4 sm:p-8 pointer-events-auto'"
         >
           <!-- Video Player Container with Custom Controls -->
           <div 
@@ -1097,6 +1124,8 @@ const formatVideoTime = (secs: number) => {
               playsinline
               webkit-playsinline
               x-webkit-airplay="allow"
+              allowsPictureInPicture
+              webkit-allowsPictureInPicture
               class="w-full h-full object-contain z-10 cursor-none"
               @loadedmetadata="onMetadataLoaded"
               @timeupdate="onTimeUpdate"
@@ -1498,10 +1527,9 @@ const formatVideoTime = (secs: number) => {
                         @click.stop="isMiniPlayer = true"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
-                          <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
-                          <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
-                          <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                          <rect x="3" y="3" width="18" height="14" rx="2" />
+                          <line x1="3" y1="9" x2="21" y2="9" />
+                          <rect x="13" y="12" width="5" height="3" rx="0.5" />
                         </svg>
                       </button>
 
@@ -1513,16 +1541,16 @@ const formatVideoTime = (secs: number) => {
                         @click.stop="toggleFullscreen"
                       >
                         <svg v-if="isPlayerFullscreen" xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M8 3v3a2 2 0 0 1-2 2H3"/>
-                          <path d="M21 8h-3a2 2 0 0 1-2-2V3"/>
-                          <path d="M3 16h3a2 2 0 0 1 2 2v3"/>
-                          <path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
+                          <polyline points="4 14 10 14 10 20" />
+                          <polyline points="20 10 14 10 14 4" />
+                          <line x1="14" y1="10" x2="21" y2="3" />
+                          <line x1="10" y1="14" x2="3" y2="21" />
                         </svg>
                         <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
-                          <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
-                          <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
-                          <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                          <polyline points="15 3 21 3 21 9" />
+                          <polyline points="9 21 3 21 3 15" />
+                          <line x1="21" y1="3" x2="14" y2="10" />
+                          <line x1="3" y1="21" x2="10" y2="14" />
                         </svg>
                       </button>
                     </div>
