@@ -106,7 +106,7 @@ const handleSearch = (keyword: string) => {
     })
 }
 
-const handleTabChange = (tab: 'search' | 'watcher' | 'library' | 'pretext') => {
+const handleTabChange = (tab: 'search' | 'watcher' | 'library' | 'settings') => {
   activeTab.value = tab
   if (tab === 'watcher') {
     startPolling()
@@ -227,9 +227,9 @@ onUnmounted(() => {
       <DashboardLibraryGrid />
     </div>
 
-    <!-- TAB 4: PRETEXT SANDBOX & BENCHMARK -->
-    <div v-else-if="activeTab === 'pretext'">
-      <DashboardPretextSandbox />
+    <!-- TAB 4: SUBTITLE & SYSTEM SETTINGS -->
+    <div v-else-if="activeTab === 'settings'">
+      <DashboardSettings />
     </div>
 
     <!-- Floating Cyberpunk PWA Button -->

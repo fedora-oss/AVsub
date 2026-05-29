@@ -133,18 +133,37 @@ const togglePiP = async () => {
   const video = videoCanvas.value?.video
   if (!video) return
   
+  // Detect Safari Specifically on iOS / macOS
+  const userAgent = navigator.userAgent.toLowerCase()
+  const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('crios') && !userAgent.includes('fxios') && !userAgent.includes('brave')
+
   try {
-    if (document.pictureInPictureElement) {
-      await document.exitPictureInPicture()
-    } else if (video.requestPictureInPicture) {
-      await video.requestPictureInPicture()
-    } else if ((video as any).webkitSetPresentationMode) {
-      // iOS Safari presentation mode bypass
-      const currentMode = (video as any).webkitPresentationMode
-      const nextMode = currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture'
-      ;(video as any).webkitSetPresentationMode(nextMode)
+    if (isSafari) {
+      // 1. SAFARI-SPECIFIC PIP FLOW
+      if ((video as any).webkitSupportsPresentationMode && (video as any).webkitSupportsPresentationMode('picture-in-picture')) {
+        const currentMode = (video as any).webkitPresentationMode
+        const nextMode = currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture'
+        await (video as any).webkitSetPresentationMode(nextMode)
+      } else {
+        if (video.requestPictureInPicture) {
+          await video.requestPictureInPicture()
+        } else {
+          console.warn('Safari: Picture-in-Picture not supported or webkit presentation mode unavailable.')
+        }
+      }
     } else {
-      console.warn('Picture-in-Picture is not supported in this browser.')
+      // 2. OTHER BROWSERS PIP FLOW (Brave, Chrome, Firefox, Desktop, Android)
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture()
+      } else if (video.requestPictureInPicture) {
+        await video.requestPictureInPicture()
+      } else if ((video as any).webkitSetPresentationMode) {
+        const currentMode = (video as any).webkitPresentationMode
+        const nextMode = currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture'
+        ;(video as any).webkitSetPresentationMode(nextMode)
+      } else {
+        console.warn('Other Browsers: Picture-in-Picture not supported.')
+      }
     }
   } catch (err) {
     console.warn('Failed to toggle Picture-in-Picture mode:', err)
@@ -157,12 +176,24 @@ const handleVisibilityChange = async () => {
   if (document.visibilityState === 'hidden' && isPlaying.value) {
     const video = videoCanvas.value?.video
     if (!video) return
+
+    const userAgent = navigator.userAgent.toLowerCase()
+    const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('crios') && !userAgent.includes('fxios') && !userAgent.includes('brave')
+
     try {
-      if (!document.pictureInPictureElement) {
-        if (video.requestPictureInPicture) {
-          await video.requestPictureInPicture()
-        } else if ((video as any).webkitSetPresentationMode) {
-          (video as any).webkitSetPresentationMode('picture-in-picture')
+      if (isSafari) {
+        if ((video as any).webkitSupportsPresentationMode && (video as any).webkitSupportsPresentationMode('picture-in-picture')) {
+          if ((video as any).webkitPresentationMode !== 'picture-in-picture') {
+            await (video as any).webkitSetPresentationMode('picture-in-picture')
+          }
+        }
+      } else {
+        if (!document.pictureInPictureElement) {
+          if (video.requestPictureInPicture) {
+            await video.requestPictureInPicture()
+          } else if ((video as any).webkitSetPresentationMode) {
+            (video as any).webkitSetPresentationMode('picture-in-picture')
+          }
         }
       }
     } catch (err) {

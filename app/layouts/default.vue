@@ -20,7 +20,7 @@ if (import.meta.client) {
   window.addEventListener('offline', () => isOnline.value = false)
 }
 
-const handleTabClick = (tab: 'search' | 'watcher' | 'library' | 'pretext') => {
+const handleTabClick = (tab: 'search' | 'watcher' | 'library' | 'settings') => {
   activeTab.value = tab
   
   if (tab === 'watcher') {
@@ -94,14 +94,14 @@ const handleTabClick = (tab: 'search' | 'watcher' | 'library' | 'pretext') => {
         <span class="nav-label">Giám Sát</span>
       </button>
 
-      <!-- ⚡ Pretext Sandbox -->
+      <!-- ⚙️ Subtitle Settings -->
       <button 
         class="dock-nav-item" 
-        :class="{ 'is-active': activeTab === 'pretext' && route.path === '/' }"
-        @click="handleTabClick('pretext')"
+        :class="{ 'is-active': activeTab === 'settings' && route.path === '/' }"
+        @click="handleTabClick('settings')"
       >
-        <i class="fa-solid fa-bolt"></i>
-        <span class="nav-label">Hộp Cát</span>
+        <i class="fa-solid fa-gear"></i>
+        <span class="nav-label">Cài Đặt</span>
       </button>
     </nav>
   </div>

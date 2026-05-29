@@ -171,12 +171,17 @@ defineExpose({
       <!-- Playback Speed Menu Trigger -->
       <div class="relative">
         <button 
-          class="menu-trigger-btn"
+          class="control-button menu-trigger-btn"
           :class="{ 'is-active': playbackRate !== 1.0 }"
           title="Playback Speed"
           @click.stop="showSpeedMenu = !showSpeedMenu; showSubtitlesMenu = false"
         >
-          {{ playbackRate === 1.0 ? 'SPEED' : `${playbackRate}x` }}
+          <svg class="speed-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3.34 19a10 10 0 1 1 17.32 0" />
+            <path d="m12 14 4-6" />
+            <path d="M12 18h.01" />
+          </svg>
+          <span v-if="playbackRate !== 1.0" class="speed-badge">{{ playbackRate }}x</span>
         </button>
         
         <transition name="fade">

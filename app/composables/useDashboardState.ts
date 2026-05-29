@@ -2,8 +2,30 @@ import { ref, computed } from 'vue'
 
 export const useDashboardState = () => {
   // Navigation
-  const activeTab = useState<'search' | 'watcher' | 'library' | 'pretext'>('dash_active_tab', () => 'library')
-  const previousTab = useState<'search' | 'watcher' | 'library' | 'pretext'>('dash_prev_tab', () => 'library')
+  const activeTab = useState<'search' | 'watcher' | 'library' | 'settings'>('dash_active_tab', () => 'library')
+  const previousTab = useState<'search' | 'watcher' | 'library' | 'settings'>('dash_prev_tab', () => 'library')
+
+  // Subtitle Settings State
+  const subtitleSize = useState<number>('sub_settings_size', () => 18)
+  const subtitleColor = useState<string>('sub_settings_color', () => '#ffffff')
+  const subtitleItalic = useState<boolean>('sub_settings_italic', () => false)
+  const subtitleBgMode = useState<'glass' | 'solid' | 'transparent'>('sub_settings_bg_mode', () => 'glass')
+
+  if (import.meta.client) {
+    const size = localStorage.getItem('sub_settings_size')
+    if (size) subtitleSize.value = parseInt(size)
+    const color = localStorage.getItem('sub_settings_color')
+    if (color) subtitleColor.value = color
+    const italic = localStorage.getItem('sub_settings_italic')
+    if (italic) subtitleItalic.value = italic === 'true'
+    const bgMode = localStorage.getItem('sub_settings_bg_mode')
+    if (bgMode) subtitleBgMode.value = bgMode as any
+
+    watch(subtitleSize, (val) => localStorage.setItem('sub_settings_size', val.toString()))
+    watch(subtitleColor, (val) => localStorage.setItem('sub_settings_color', val))
+    watch(subtitleItalic, (val) => localStorage.setItem('sub_settings_italic', val.toString()))
+    watch(subtitleBgMode, (val) => localStorage.setItem('sub_settings_bg_mode', val))
+  }
 
   // Search Tab State
   const currentKeyword = useState<string>('dash_search_keyword', () => '')
@@ -493,5 +515,10 @@ export const useDashboardState = () => {
     quickDownloadSub,
     startPolling,
     stopPolling,
+
+    subtitleSize,
+    subtitleColor,
+    subtitleItalic,
+    subtitleBgMode,
   }
 }
