@@ -24,10 +24,12 @@ const emit = defineEmits<{
   cuechange: [text: string]
   'seek:relative': [seconds: number]
   'click:video': []
+  pipchange: [isActive: boolean]
 }>()
 
 const videoElement = ref<HTMLVideoElement | null>(null)
 const isBuffering = ref(false)
+const isPiPActive = ref(false)
 
 // Gesture Seeking visual feedback
 const leftRippleActive = ref(false)
@@ -127,16 +129,17 @@ const setupSubtitles = () => {
   for (let i = 0; i < tracks.length; i++) {
     const track = tracks[i]
     
-    // mode 'hidden' fires cue events but blocks Safari's native overlay rendering!
+    // In PiP mode, we change active track to 'showing' so Safari's native system window displays it.
+    // In inline mode, we use 'hidden' so native player hides subtitles but cue events still trigger.
     const matchingProp = props.subtitleTracks.find(t => t.label === track.label)
     if (matchingProp && props.activeSubtitleTrackId === matchingProp.id) {
-      track.mode = 'hidden'
+      track.mode = isPiPActive.value ? 'showing' : 'hidden'
     } else {
       track.mode = 'disabled'
     }
     
     track.oncuechange = () => {
-      if (track.mode === 'hidden') {
+      if (track.mode === 'hidden' || track.mode === 'showing') {
         const activeCues = track.activeCues
         if (activeCues && activeCues.length > 0) {
           emit('cuechange', (activeCues[0] as VTTCue).text)
@@ -145,6 +148,32 @@ const setupSubtitles = () => {
         }
       }
     }
+  }
+}
+
+// Picture-in-Picture event handlers
+const handlePiPEnter = () => {
+  console.log('[VideoCanvas] W3C PiP Entered')
+  isPiPActive.value = true
+  emit('pipchange', true)
+  setupSubtitles()
+}
+
+const handlePiPLeave = () => {
+  console.log('[VideoCanvas] W3C PiP Left')
+  isPiPActive.value = false
+  emit('pipchange', false)
+  setupSubtitles()
+}
+
+const handleWebKitPiPChange = () => {
+  if (videoElement.value && (videoElement.value as any).webkitPresentationMode) {
+    const mode = (videoElement.value as any).webkitPresentationMode
+    console.log('[VideoCanvas] WebKit presentation mode changed:', mode)
+    const active = mode === 'picture-in-picture'
+    isPiPActive.value = active
+    emit('pipchange', active)
+    setupSubtitles()
   }
 }
 
@@ -180,6 +209,11 @@ onMounted(() => {
     videoElement.value.playbackRate = props.playbackRate
     videoElement.value.volume = props.volume
     videoElement.value.muted = props.isMuted
+
+    // Bind Picture-in-Picture events
+    videoElement.value.addEventListener('enterpictureinpicture', handlePiPEnter)
+    videoElement.value.addEventListener('leavepictureinpicture', handlePiPLeave)
+    videoElement.value.addEventListener('webkitpresentationmodechanged', handleWebKitPiPChange)
   }
   setupSubtitles()
 })
@@ -188,6 +222,12 @@ onUnmounted(() => {
   if (leftRippleTimeout) clearTimeout(leftRippleTimeout)
   if (rightRippleTimeout) clearTimeout(rightRippleTimeout)
   if (clickTimeout) clearTimeout(clickTimeout)
+
+  if (videoElement.value) {
+    videoElement.value.removeEventListener('enterpictureinpicture', handlePiPEnter)
+    videoElement.value.removeEventListener('leavepictureinpicture', handlePiPLeave)
+    videoElement.value.removeEventListener('webkitpresentationmodechanged', handleWebKitPiPChange)
+  }
 })
 
 // Expose native video element so wrapper can trigger play/pause/seek directly

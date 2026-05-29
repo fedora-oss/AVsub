@@ -43,6 +43,7 @@ const isFullscreen = ref(false)
 const bufferedEnd = ref(0)
 const currentSubtitleText = ref('')
 const activeSubtitleTrackId = ref<string | null>('off')
+const isPiPActive = ref(false)
 
 // UI Visibility States
 const isControlsVisible = ref(true)
@@ -438,6 +439,7 @@ onUnmounted(() => {
       @cuechange="(txt) => currentSubtitleText = txt"
       @seek:relative="seekRelative"
       @click:video="togglePlay"
+      @pipchange="(active) => isPiPActive = active"
     />
 
     <!-- Title Bar Frame (Top Overlay) -->
@@ -471,8 +473,9 @@ onUnmounted(() => {
       </div>
     </transition>
 
-    <!-- Custom Subtitles Overlay Frame -->
+    <!-- Custom Subtitles Overlay Frame (Only shown if NOT in PiP mode) -->
     <SubtitleOverlay
+      v-if="!isPiPActive"
       :subtitle-text="currentSubtitleText"
       :active-track-id="activeSubtitleTrackId"
     />
