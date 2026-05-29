@@ -46,8 +46,10 @@ const handleTabClick = (tab: 'search' | 'watcher' | 'library' | 'settings') => {
     <!-- Premium iOS 26 Glassmorphic Header (App Bar) -->
     <header class="layout-header-bar">
       <NuxtLink to="/" class="header-brand">
-        <div class="brand-logo">AV</div>
-        <span class="brand-title">AVsub<span class="brand-highlight">PRO</span></span>
+        <div class="brand-logo">
+          <BrandLogo />
+        </div>
+        <span class="brand-title">sub<span class="brand-highlight">PRO</span></span>
       </NuxtLink>
       
       <div class="header-actions">

@@ -60,13 +60,19 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, $accent-color, #ff6b62);
-      border-radius: 8px;
-      color: #fff;
-      font-weight: 900;
-      font-size: 1.15rem;
-      font-family: 'Outfit', sans-serif;
-      box-shadow: 0 0 15px $accent-glow;
+      transition: transform $duration-smooth $ease-spring, filter $duration-smooth ease;
+      
+      svg {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    &:hover {
+      .brand-logo {
+        transform: scale(1.15) rotate(6deg);
+        filter: drop-shadow(0 0 8px rgba(255, 59, 48, 0.5));
+      }
     }
 
     .brand-title {

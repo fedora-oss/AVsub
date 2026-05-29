@@ -154,42 +154,43 @@ const toggleFullscreen = async () => {
   resetIdleTimer()
 }
 
-// Picture-in-Picture Toggle (Supports standard and Apple iOS / Safari natively)
-const togglePiP = async () => {
+// Picture-in-Picture Toggle (Purely synchronous, feature-detected WebKit and standard API)
+const togglePiP = () => {
   const video = videoCanvas.value?.video
   if (!video) return
   
-  // Detect Safari Specifically on iOS / macOS
-  const userAgent = navigator.userAgent.toLowerCase()
-  const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('crios') && !userAgent.includes('fxios') && !userAgent.includes('brave')
-
   try {
-    if (isSafari) {
-      // 1. SAFARI-SPECIFIC PIP FLOW
-      if ((video as any).webkitSupportsPresentationMode && (video as any).webkitSupportsPresentationMode('picture-in-picture')) {
-        const currentMode = (video as any).webkitPresentationMode
-        const nextMode = currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture'
-        await (video as any).webkitSetPresentationMode(nextMode)
-      } else {
-        if (video.requestPictureInPicture) {
-          await video.requestPictureInPicture()
-        } else {
-          console.warn('Safari: Picture-in-Picture not supported or webkit presentation mode unavailable.')
-        }
-      }
-    } else {
-      // 2. OTHER BROWSERS PIP FLOW (Brave, Chrome, Firefox, Desktop, Android)
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture()
-      } else if (video.requestPictureInPicture) {
-        await video.requestPictureInPicture()
-      } else if ((video as any).webkitSetPresentationMode) {
+    // 1. Feature detect Apple WebKit Presentation Mode (Highly reliable on iOS Safari/iPadOS Safari)
+    if ((video as any).webkitSupportsPresentationMode && typeof (video as any).webkitSetPresentationMode === 'function') {
+      if ((video as any).webkitSupportsPresentationMode('picture-in-picture')) {
         const currentMode = (video as any).webkitPresentationMode
         const nextMode = currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture'
         ;(video as any).webkitSetPresentationMode(nextMode)
-      } else {
-        console.warn('Other Browsers: Picture-in-Picture not supported.')
+        resetIdleTimer()
+        return
       }
+    }
+    
+    // 2. Feature detect W3C Standard Picture-in-Picture API (Chrome, Brave, Desktop, Android)
+    if (document.pictureInPictureEnabled && video.requestPictureInPicture) {
+      if (document.pictureInPictureElement) {
+        document.exitPictureInPicture()
+      } else {
+        video.requestPictureInPicture()
+      }
+      resetIdleTimer()
+      return
+    }
+
+    // 3. General standard API fallback
+    if (video.requestPictureInPicture) {
+      if (document.pictureInPictureElement) {
+        document.exitPictureInPicture()
+      } else {
+        video.requestPictureInPicture()
+      }
+    } else {
+      console.warn('Picture-in-Picture is not supported in this browser/device context.')
     }
   } catch (err) {
     console.warn('Failed to toggle Picture-in-Picture mode:', err)
@@ -197,29 +198,27 @@ const togglePiP = async () => {
   resetIdleTimer()
 }
 
-// Auto-PiP on Page Visibility Change
-const handleVisibilityChange = async () => {
+// Auto-PiP on Page Visibility Change (Purely synchronous)
+const handleVisibilityChange = () => {
   if (document.visibilityState === 'hidden' && isPlaying.value) {
     const video = videoCanvas.value?.video
     if (!video) return
 
-    const userAgent = navigator.userAgent.toLowerCase()
-    const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('crios') && !userAgent.includes('fxios') && !userAgent.includes('brave')
-
     try {
-      if (isSafari) {
-        if ((video as any).webkitSupportsPresentationMode && (video as any).webkitSupportsPresentationMode('picture-in-picture')) {
+      // 1. Apple WebKit Presentation Mode
+      if ((video as any).webkitSupportsPresentationMode && typeof (video as any).webkitSetPresentationMode === 'function') {
+        if ((video as any).webkitSupportsPresentationMode('picture-in-picture')) {
           if ((video as any).webkitPresentationMode !== 'picture-in-picture') {
-            await (video as any).webkitSetPresentationMode('picture-in-picture')
+            ;(video as any).webkitSetPresentationMode('picture-in-picture')
           }
+          return
         }
-      } else {
+      }
+      
+      // 2. Standard W3C PiP
+      if (document.pictureInPictureEnabled && video.requestPictureInPicture) {
         if (!document.pictureInPictureElement) {
-          if (video.requestPictureInPicture) {
-            await video.requestPictureInPicture()
-          } else if ((video as any).webkitSetPresentationMode) {
-            (video as any).webkitSetPresentationMode('picture-in-picture')
-          }
+          video.requestPictureInPicture()
         }
       }
     } catch (err) {

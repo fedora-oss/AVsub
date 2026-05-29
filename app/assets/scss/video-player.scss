@@ -520,6 +520,10 @@
   align-items: center;
   white-space: nowrap;
 
+  @media (max-width: 480px) {
+    display: none !important;
+  }
+
   .timer-sep {
     margin: 0 0.5rem;
     color: rgba(255, 255, 255, 0.3);
