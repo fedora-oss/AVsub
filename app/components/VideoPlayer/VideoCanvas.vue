@@ -206,6 +206,7 @@ defineExpose({
       :src="src"
       playsinline
       webkit-playsinline
+      autopictureinpicture
       :muted="isMuted"
       @play="onPlay"
       @pause="onPause"

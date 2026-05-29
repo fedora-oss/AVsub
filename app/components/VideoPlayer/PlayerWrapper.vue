@@ -128,6 +128,49 @@ const toggleFullscreen = async () => {
   resetIdleTimer()
 }
 
+// Picture-in-Picture Toggle (Supports standard and Apple iOS / Safari natively)
+const togglePiP = async () => {
+  const video = videoCanvas.value?.video
+  if (!video) return
+  
+  try {
+    if (document.pictureInPictureElement) {
+      await document.exitPictureInPicture()
+    } else if (video.requestPictureInPicture) {
+      await video.requestPictureInPicture()
+    } else if ((video as any).webkitSetPresentationMode) {
+      // iOS Safari presentation mode bypass
+      const currentMode = (video as any).webkitPresentationMode
+      const nextMode = currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture'
+      ;(video as any).webkitSetPresentationMode(nextMode)
+    } else {
+      console.warn('Picture-in-Picture is not supported in this browser.')
+    }
+  } catch (err) {
+    console.warn('Failed to toggle Picture-in-Picture mode:', err)
+  }
+  resetIdleTimer()
+}
+
+// Auto-PiP on Page Visibility Change
+const handleVisibilityChange = async () => {
+  if (document.visibilityState === 'hidden' && isPlaying.value) {
+    const video = videoCanvas.value?.video
+    if (!video) return
+    try {
+      if (!document.pictureInPictureElement) {
+        if (video.requestPictureInPicture) {
+          await video.requestPictureInPicture()
+        } else if ((video as any).webkitSetPresentationMode) {
+          (video as any).webkitSetPresentationMode('picture-in-picture')
+        }
+      }
+    } catch (err) {
+      console.warn('Auto-PiP on visibility change failed:', err)
+    }
+  }
+}
+
 // Orientation change automatic Pseudo-Fullscreen trigger (Mobile request)
 const handleOrientationChange = () => {
   if (!import.meta.client || !checkIOS()) return
@@ -193,6 +236,10 @@ const handleKeyDown = (e: KeyboardEvent) => {
     case 'f':
       e.preventDefault()
       toggleFullscreen()
+      break
+    case 'p':
+      e.preventDefault()
+      togglePiP()
       break
   }
 }
@@ -280,6 +327,7 @@ const blockSwipeNavigate = (e: TouchEvent) => {
 onMounted(() => {
   document.addEventListener('fullscreenchange', handleFullscreenChange)
   window.addEventListener('keydown', handleKeyDown)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
   
   // Listen to orientation change for PWA responsive fullscreen
   window.addEventListener('resize', handleOrientationChange)
@@ -294,6 +342,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('fullscreenchange', handleFullscreenChange)
   window.removeEventListener('keydown', handleKeyDown)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   window.removeEventListener('resize', handleOrientationChange)
   
   document.removeEventListener('touchstart', blockIOSGestures)
@@ -407,6 +456,7 @@ onUnmounted(() => {
           @rate="(r) => playbackRate = r"
           @subtitle="(id) => activeSubtitleTrackId = id"
           @fullscreen="toggleFullscreen"
+          @pip="togglePiP"
         />
       </div>
     </transition>

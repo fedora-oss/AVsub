@@ -27,6 +27,7 @@ const emit = defineEmits<{
   rate: [rate: number]
   subtitle: [trackId: string | null]
   fullscreen: []
+  pip: []
 }>()
 
 // UI Menus Toggles
@@ -216,6 +217,19 @@ defineExpose({
         </transition>
       </div>
 
+      <!-- Picture-in-Picture Trigger -->
+      <button 
+        class="control-button" 
+        title="Picture-in-Picture (P)"
+        @click="emit('pip')"
+      >
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 19V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" stroke-opacity="0.4"/>
+          <rect x="13" y="12" width="7" height="5" rx="1" fill="currentColor"/>
+          <path d="m9 14 3-3m0 0h-3.5m3.5 0v3.5"/>
+        </svg>
+      </button>
+
       <!-- Fullscreen Toggler (Bypasses iOS natively) -->
       <button 
         class="control-button" 
@@ -223,11 +237,11 @@ defineExpose({
         :title="isFullscreen ? 'Exit Fullscreen (F)' : 'Fullscreen (F)'"
         @click="emit('fullscreen')"
       >
-        <svg v-if="isFullscreen" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 14h6v6m10-6h-6v6M4 10h6V4m10 6h-6V4" />
+        <svg v-if="isFullscreen" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 10h6V4M20 10h-6V4M4 14h6v6M20 14h-6v6" />
         </svg>
-        <svg v-else fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4m12 0h-4v4m0 12h4v-4M4 16v4h4" />
+        <svg v-else fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 3h6v6M9 21H3v-6M21 15v6h-6M3 9V3h6" />
         </svg>
       </button>
 
