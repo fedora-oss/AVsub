@@ -1,3 +1,4 @@
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useDashboardState } from '~/composables/useDashboardState'
 
