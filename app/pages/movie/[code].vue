@@ -112,16 +112,11 @@ const progressPercentage = computed(() => {
 
 // PiP Supported check
 const isPiPSupported = computed(() => {
-  if (typeof document === 'undefined') return false
-  const video = videoPlayerRef.value
-  if (video) {
-    if (typeof video.webkitSupportsPresentationMode === 'function') {
-      return video.webkitSupportsPresentationMode('picture-in-picture')
-    }
-  }
+  if (typeof document === 'undefined' || typeof navigator === 'undefined') return false
   return !!(
     document.pictureInPictureEnabled ||
-    (typeof HTMLVideoElement !== 'undefined' && HTMLVideoElement.prototype.webkitSupportsPresentationMode)
+    /iphone|ipad|ipod|macintosh/i.test(navigator.userAgent) ||
+    /safari/i.test(navigator.userAgent)
   )
 })
 
@@ -1124,8 +1119,8 @@ const formatVideoTime = (secs: number) => {
               playsinline
               webkit-playsinline
               x-webkit-airplay="allow"
-              allowsPictureInPicture
-              webkit-allowsPictureInPicture
+              :allowsPictureInPicture="true"
+              :webkit-allowsPictureInPicture="true"
               class="w-full h-full object-contain z-10 cursor-none"
               @loadedmetadata="onMetadataLoaded"
               @timeupdate="onTimeUpdate"
