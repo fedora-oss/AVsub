@@ -41,7 +41,7 @@ const setupIntersectionObserver = () => {
       fetchLibraryMovies(pagination.value.page + 1)
     }
   }, {
-    rootMargin: '250px' // Fetch page ahead by 250px
+    rootMargin: '450px' // Fetch page ahead by 450px for ultra-smooth scrolling
   })
   
   if (loadMoreSentinel.value) {
@@ -282,10 +282,10 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Loading State / Skeleton Screen -->
-    <div v-if="loadingLibrary" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 animate-pulse">
+    <!-- Loading State / Skeleton Screen (Only on first page load) -->
+    <div v-if="loadingLibrary && libraryMovies.length === 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 animate-pulse">
       <div v-for="n in 12" :key="n" class="border border-white/[0.06] rounded-2xl bg-slate-950/20 overflow-hidden">
-        <div class="aspect-[2/3] bg-white/5"></div>
+        <div class="aspect-[3/2] bg-white/5"></div>
         <div class="p-3 space-y-2">
           <div class="h-3 w-16 bg-white/5 rounded"></div>
           <div class="h-4 w-full bg-white/5 rounded"></div>
@@ -294,12 +294,14 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div v-else-if="libraryMovies.length === 0" class="no-results-box library py-12 text-center border border-dashed border-white/[0.06] rounded-3xl">
+    <!-- Empty library state (Only when not loading) -->
+    <div v-else-if="libraryMovies.length === 0 && !loadingLibrary" class="no-results-box library py-12 text-center border border-dashed border-white/[0.06] rounded-3xl">
       <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon text-slate-500 mx-auto mb-3"><circle cx="12" cy="12" r="10"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
       <p class="text-xs text-slate-400">Không tìm thấy bộ phim nào trong thư viện khớp với bộ lọc hiện tại.</p>
       <button class="reset-filter-btn text-xs mt-3 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 text-slate-350 hover:bg-white/10" @click="resetLibraryFilters">Xóa bộ lọc</button>
     </div>
 
+    <!-- Main Library Content Area -->
     <div v-else class="library-content-area">
       <div class="library-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
         <div 
@@ -312,21 +314,20 @@ onUnmounted(() => {
           <!-- Card Poster Image -->
           <div 
             class="movie-poster-container relative overflow-hidden bg-slate-950 transition-all duration-300"
-            :class="movie.posterUrl === movie.coverUrl ? 'aspect-[3/2]' : 'aspect-[2/3]'"
+            :class="movie.coverUrl ? 'aspect-[3/2]' : 'aspect-[2/3]'"
           >
             <!-- 1. Blurred background image if it is a landscape cover -->
             <img 
-              v-if="movie.posterUrl && movie.posterUrl === movie.coverUrl"
-              :src="movie.posterUrl" 
+              v-if="movie.coverUrl"
+              :src="movie.coverUrl" 
               class="absolute inset-0 w-full h-full object-cover blur-xl opacity-30 z-0 pointer-events-none select-none"
             >
-            <!-- 2. Main poster image (contain for landscape, cover for portrait) -->
+            <!-- 2. Main cover image (cover takes priority, then fallback to poster) -->
             <img 
-              v-if="movie.posterUrl" 
-              :src="movie.posterUrl" 
+              v-if="movie.coverUrl || movie.posterUrl" 
+              :src="movie.coverUrl || movie.posterUrl" 
               :alt="movie.title" 
-              class="movie-poster-img w-full h-full z-10 relative transition-transform duration-500 group-hover:scale-105"
-              :class="movie.posterUrl === movie.coverUrl ? 'object-contain' : 'object-cover'"
+              class="movie-poster-img w-full h-full z-10 relative transition-transform duration-500 group-hover:scale-105 object-cover"
               loading="lazy"
               @error="(e: any) => e.target.src = '/icon.png'"
             >

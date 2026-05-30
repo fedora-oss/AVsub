@@ -27,25 +27,19 @@ export default defineNuxtConfig({
       categories: ['entertainment', 'utilities', 'video'],
       icons: [
         {
-          src: '/icon.png',
+          src: '/icon-192.png',
           sizes: '192x192',
           type: 'image/png',
           purpose: 'any'
         },
         {
-          src: '/icon.png',
+          src: '/icon-512.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'any'
         },
         {
-          src: '/icon.png',
-          sizes: '192x192',
-          type: 'image/png',
-          purpose: 'maskable'
-        },
-        {
-          src: '/icon.png',
+          src: '/icon-512-maskable.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'maskable'
@@ -57,14 +51,14 @@ export default defineNuxtConfig({
           short_name: 'Thư Viện',
           description: 'Xem thư viện phim JAV cá nhân của bạn',
           url: '/?tab=library&source=shortcut',
-          icons: [{ src: '/icon.png', sizes: '192x192' }]
+          icons: [{ src: '/icon-192.png', sizes: '192x192' }]
         },
         {
           name: 'Portal Tìm Kiếm',
           short_name: 'Tìm Kiếm',
           description: 'Tìm kiếm magnet torrent và phụ đề JAV',
           url: '/?tab=search&source=shortcut',
-          icons: [{ src: '/icon.png', sizes: '192x192' }]
+          icons: [{ src: '/icon-192.png', sizes: '192x192' }]
         }
       ],
       screenshots: [
@@ -85,7 +79,7 @@ export default defineNuxtConfig({
       ]
     },
     workbox: {
-      navigateFallback: '/',
+      navigateFallback: '/offline.html',
       globPatterns: ['**/*.{js,css,html,png,svg,ico,json}']
     },
     devOptions: {

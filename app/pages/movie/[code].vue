@@ -139,20 +139,16 @@ const isPiPSupported = computed(() => {
   )
 })
 
-// Movie poster computed to prioritize vertical poster/profile image over cover
+// Movie poster computed to prioritize full widescreen cover over cropped poster
 const displayPoster = computed(() => {
   if (!metadata.value) return '/icon.png'
   
-  const poster = metadata.value.posterUrl || ''
   const cover = metadata.value.coverUrl || ''
+  const poster = metadata.value.posterUrl || ''
   const cropped = (metadata.value as any).croppedPosterUrl || ''
   
-  // If poster is same as cover (meaning it's horizontal landscape), prefer cropped vertical poster
-  if (poster === cover && cropped) {
-    return cropped
-  }
-  
-  return poster || cropped || cover || '/icon.png'
+  // Prioritize full landscape cover first to display in widescreen width
+  return cover || poster || cropped || '/icon.png'
 })
 
 // ── Settings Handlers ───────────────────────────────────────────────────────
@@ -785,12 +781,20 @@ watch(showVideoPlayer, (newVal) => {
       window.addEventListener('keydown', handlePlayerKeydown)
     }
     triggerControlsActivity()
+    // Lock scrolling on details page when playing video
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = 'hidden'
+    }
   } else {
     if (typeof window !== 'undefined') {
       window.removeEventListener('keydown', handlePlayerKeydown)
     }
     isPlayerFullscreen.value = false
     pipActive.value = false
+    // Restore scrolling when player is closed
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = ''
+    }
   }
 })
 
@@ -955,8 +959,7 @@ const formatVideoTime = (secs: number) => {
               <img 
                 :src="displayPoster" 
                 :alt="metadata.title" 
-                class="w-full h-full z-10 relative transition-transform duration-500 hover:scale-102"
-                :class="displayPoster === metadata.coverUrl ? 'object-contain' : 'object-cover'"
+                class="w-full h-full z-10 relative transition-transform duration-500 hover:scale-102 object-cover"
               >
             </div>
 
@@ -1121,7 +1124,8 @@ const formatVideoTime = (secs: number) => {
         >
           <!-- Close button -->
           <button 
-            class="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-slate-950/80 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30 transition-all active:scale-90 shadow-lg" 
+            class="absolute z-50 w-10 h-10 rounded-full bg-slate-950/80 border border-white/10 text-slate-300 flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30 transition-all active:scale-90 shadow-lg" 
+            style="top: calc(1rem + env(safe-area-inset-top)); right: calc(1rem + env(safe-area-inset-right));"
             title="Đóng trình phát (Esc)"
             @click.stop="closeVideoPlayer"
           >

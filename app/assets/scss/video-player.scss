@@ -451,6 +451,10 @@
   gap: 0.5rem;
   position: relative;
   
+  @media (max-width: 640px) {
+    display: none !important; // Hide volume controls on mobile screens to prevent row overflow
+  }
+  
   &:hover {
     .volume-slider-input {
       width: 5.5rem;

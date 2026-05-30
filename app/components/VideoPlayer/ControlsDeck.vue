@@ -231,11 +231,7 @@ defineExpose({
         title="Picture-in-Picture (P)"
         @click="emit('pip')"
       >
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M2 19V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" stroke-opacity="0.4"/>
-          <rect x="13" y="12" width="7" height="5" rx="1" fill="currentColor"/>
-          <path d="m9 14 3-3m0 0h-3.5m3.5 0v3.5"/>
-        </svg>
+        <i class="fa-solid fa-window-restore"></i>
       </button>
 
       <!-- Launch Native System Player (Jellyfin Style) -->
